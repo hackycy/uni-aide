@@ -1,17 +1,16 @@
 {
-  "name": "pkg-placeholder",
+  "name": "vite-plugin-uni-helper-core",
   "type": "module",
   "version": "0.0.0",
-  "description": "_description_",
-  "author": "Anthony Fu <anthonyfu117@hotmail.com>",
+  "description": "@internal/core for vite-plugin-uni-helper",
+  "author": "hackycy",
   "license": "MIT",
-  "funding": "https://github.com/sponsors/antfu",
-  "homepage": "https://github.com/antfu/pkg-placeholder#readme",
+  "homepage": "https://github.com/hackycy/vite-plugin-uni-helper#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/antfu/pkg-placeholder.git"
+    "url": "git+https://github.com/hackycy/vite-plugin-uni-helper.git"
   },
-  "bugs": "https://github.com/antfu/pkg-placeholder/issues",
+  "bugs": "https://github.com/hackycy/vite-plugin-uni-helper/issues",
   "keywords": [],
   "sideEffects": false,
   "exports": {
