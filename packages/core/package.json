@@ -1,5 +1,5 @@
 {
-  "name": "vite-plugin-uni-helper-core",
+  "name": "@vite-plugin-uni-helper/core",
   "type": "module",
   "version": "0.0.0",
   "description": "@internal/core for vite-plugin-uni-helper",
@@ -27,5 +27,8 @@
     "dev": "unbuild --stub",
     "prepublishOnly": "nr build",
     "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "comment-json": "^4.2.5"
   }
 }
