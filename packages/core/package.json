@@ -29,6 +29,7 @@
     "start": "tsx src/index.ts"
   },
   "dependencies": {
-    "comment-json": "^4.2.5"
+    "comment-json": "^4.2.5",
+    "unconfig": "^7.3.3"
   }
 }
