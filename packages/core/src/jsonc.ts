@@ -98,3 +98,19 @@ export function buildJsonc(config: any): string {
   // 直接使用 comment-json 的 stringify，它会保留注释
   return stringify(processedConfig, null, 2)
 }
+
+export function define(config: Record<string, any>): Define {
+  return new Define(config)
+}
+
+export class Define {
+  constructor(private config: Record<string, any>) {}
+
+  public if(): this {
+    return this
+  }
+
+  public nif(): this {
+    return this
+  }
+}
