@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildPagesJson, definePage, ifdef, ifndef } from '../src/index'
+import { buildJsonc, ifdef, ifndef } from '../src/index'
+
+function definePage(config: any): any {
+  return config
+}
 
 describe('definePage', () => {
   it('should return the same config object', () => {
@@ -33,7 +37,7 @@ describe('ifdef and ifndef', () => {
   })
 })
 
-describe('buildPagesJson', () => {
+describe('buildJsonc', () => {
   it('should stringify plain config without ifdef/ifndef', () => {
     const config = {
       pages: [],
@@ -43,7 +47,7 @@ describe('buildPagesJson', () => {
       },
     }
 
-    const result = buildPagesJson(config)
+    const result = buildJsonc(config)
     const expected = JSON.stringify(config, null, 2)
     expect(result).toBe(expected)
   })
@@ -60,7 +64,7 @@ describe('buildPagesJson', () => {
       },
     }
 
-    const result = buildPagesJson(config)
+    const result = buildJsonc(config)
 
     // 检查是否包含注释
     expect(result).toContain('// #ifdef H5')
@@ -80,7 +84,7 @@ describe('buildPagesJson', () => {
       },
     }
 
-    const result = buildPagesJson(config)
+    const result = buildJsonc(config)
 
     // 检查是否包含注释
     expect(result).toContain('// #ifndef MP-WEIXIN')
@@ -114,7 +118,7 @@ describe('integration test', () => {
       },
     }
 
-    const result = buildPagesJson(mockConfig)
+    const result = buildJsonc(mockConfig)
 
     // 验证基本结构
     expect(result).toContain('"pages": []')
