@@ -1,6 +1,6 @@
-import { definePage, ifdef } from '../../src/index'
+import { ifdef } from '../../src/index'
 
-export default definePage({
+export default {
   pages: [],
   globalStyle: {
     // 导航栏配置
@@ -25,4 +25,4 @@ export default definePage({
       '^wd-(.*)': 'wot-design-uni/components/wd-$1/wd-$1.vue',
     },
   },
-})
+}
