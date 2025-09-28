@@ -26,7 +26,8 @@
     "build": "unbuild",
     "dev": "unbuild --stub",
     "prepublishOnly": "nr build",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "comment-json": "^4.2.5",

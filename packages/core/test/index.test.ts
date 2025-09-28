@@ -1,22 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildJsonc, ifdef, ifndef } from '../src/index'
 
-function definePage(config: any): any {
-  return config
-}
-
-describe('definePage', () => {
-  it('should return the same config object', () => {
-    const config = {
-      pages: [],
-      globalStyle: {
-        navigationBarBackgroundColor: '@navBgColor',
-      },
-    }
-    expect(definePage(config)).toEqual(config)
-  })
-})
-
 describe('ifdef and ifndef', () => {
   it('should create conditional block objects', () => {
     const ifdefBlock = ifdef('H5', { test: 'value' })

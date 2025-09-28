@@ -11,7 +11,7 @@
     "docs": "pnpm -C docs run docs:dev",
     "docs:build": "pnpm -C docs run docs:build",
     "release": "bumpp -r && pnpm -r publish",
-    "test": "vitest",
+    "test": "nr -r test",
     "typecheck": "tsc --noEmit",
     "prepare": "simple-git-hooks"
   },

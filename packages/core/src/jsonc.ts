@@ -1,4 +1,5 @@
 import type { ConditionalBlock } from './types'
+import process from 'node:process'
 import { assign, parse, stringify } from 'comment-json'
 import { loadConfig } from 'unconfig'
 import { isArray, isConditionalBlock, isObject } from './utils'
@@ -28,7 +29,7 @@ export function ifndef(condition: string, data: any): ConditionalBlock {
   }
 }
 
-export async function loadDefineConfig(name: string): Promise<Record<string, any>> {
+export async function loadDefineConfig(name: string, cwd = process.cwd()): Promise<Record<string, any>> {
   const { config } = await loadConfig({
     sources: [
       {
@@ -36,6 +37,7 @@ export async function loadDefineConfig(name: string): Promise<Record<string, any
         extensions: ['ts', 'mts', 'js', 'mjs'],
       },
     ],
+    cwd,
     defaults: {},
   })
 
