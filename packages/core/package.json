@@ -1,8 +1,8 @@
 {
-  "name": "@vite-plugin-uni-helper/core",
+  "name": "@vite-plugin-uni/core",
   "type": "module",
   "version": "0.0.0",
-  "description": "@internal/core for vite-plugin-uni-helper",
+  "description": "@vite-plugin-uni/core",
   "author": "hackycy",
   "license": "MIT",
   "homepage": "https://github.com/hackycy/vite-plugin-uni-helper#readme",
