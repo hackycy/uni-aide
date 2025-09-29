@@ -7,3 +7,11 @@ export interface ConditionalBlock {
   type: 'ifdef' | 'ifndef'
   data: any
 }
+
+/**
+ * 条件编译构建器
+ */
+export interface ConditionalBuilder {
+  ifdef: (condition: string, data: any) => ConditionalBlock
+  ifndef: (condition: string, data: any) => ConditionalBlock
+}

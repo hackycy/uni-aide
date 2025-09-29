@@ -1,8 +1,7 @@
-import type { ConditionalBlock } from './types'
+import type { ConditionalBlock, ConditionalBuilder } from './types'
 import process from 'node:process'
-import { assign, parse, stringify } from 'comment-json'
+import { stringify } from 'comment-json'
 import { loadConfig } from 'unconfig'
-import { isArray, isConditionalBlock, isObject } from './utils'
 
 /**
  * ifdef 条件编译函数
@@ -29,6 +28,51 @@ export function ifndef(condition: string, data: any): ConditionalBlock {
   }
 }
 
+/**
+ * 链式调用的条件编译构建器 - 直接返回可展开的对象
+ */
+export const when: ConditionalBuilder = {
+  ifdef: (condition: string, data: any) => {
+    // 直接返回数据，但添加特殊的注释标记
+    const result = { ...data }
+
+    // 在每个属性前后添加注释标记
+    const keys = Object.keys(result)
+    if (keys.length > 0) {
+      // 添加开始注释标记到第一个属性
+      const firstKey = keys[0]
+      const originalValue = result[firstKey]
+      result[`__ifdef_${condition}_start`] = `#ifdef ${condition}`
+
+      // 重新排序：注释 -> 原始属性
+      delete result[firstKey]
+      result[firstKey] = originalValue
+
+      // 添加结束注释标记
+      result[`__ifdef_${condition}_end`] = `#endif`
+    }
+
+    return result
+  },
+  ifndef: (condition: string, data: any) => {
+    const result = { ...data }
+
+    const keys = Object.keys(result)
+    if (keys.length > 0) {
+      const firstKey = keys[0]
+      const originalValue = result[firstKey]
+      result[`__ifndef_${condition}_start`] = `#ifndef ${condition}`
+
+      delete result[firstKey]
+      result[firstKey] = originalValue
+
+      result[`__ifndef_${condition}_end`] = `#endif`
+    }
+
+    return result
+  },
+}
+
 export async function loadDefineConfig(name: string, cwd = process.cwd()): Promise<Record<string, any>> {
   const { config } = await loadConfig({
     sources: [
@@ -45,72 +89,44 @@ export async function loadDefineConfig(name: string, cwd = process.cwd()): Promi
 }
 
 export function buildJsonc(config: any): string {
-  // 递归处理对象，处理条件编译块
-  function processObject(obj: any): any {
-    if (isArray(obj)) {
-      return obj.map(processObject)
+  // 直接使用 comment-json 生成，然后替换注释标记
+  const jsonString = stringify(config, null, 2)
+
+  // 先找到并标记所有需要处理的位置
+  const lines = jsonString.split('\n')
+
+  // 处理注释标记的替换
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // 处理开始标记
+    const startMatch = line.match(/^(\s*)"(__(?:ifdef|ifndef)_[^_]+_start)":\s*"([^"]+)",?/)
+    if (startMatch) {
+      const [, indent, , commentText] = startMatch
+      lines[i] = `${indent}// ${commentText}`
+      continue
     }
 
-    if (isObject(obj)) {
-      const result: any = {}
+    // 处理结束标记
+    const endMatch = line.match(/^(\s*)"(__(?:ifdef|ifndef)_[^_]+_end)":\s*"([^"]+)"(,?)/)
+    if (endMatch) {
+      const [, indent, , commentText, comma] = endMatch
+      lines[i] = `${indent}// ${commentText}`
 
-      for (const [key, value] of Object.entries(obj)) {
-        if (isConditionalBlock(value)) {
-          // 处理条件编译块 - 展开到当前对象
-          const conditionalBlock = value as ConditionalBlock
-
-          // 构建带注释的 JSON 字符串
-          const dataKeys = Object.keys(conditionalBlock.data)
-          if (dataKeys.length > 0) {
-            const jsonLines: string[] = ['{']
-            jsonLines.push(`  // #${conditionalBlock.type} ${conditionalBlock.condition}`)
-
-            dataKeys.forEach((dataKey, index) => {
-              const dataValue = JSON.stringify(conditionalBlock.data[dataKey])
-              const comma = index < dataKeys.length - 1 ? ',' : ''
-              jsonLines.push(`  "${dataKey}": ${dataValue}${comma}`)
-            })
-
-            jsonLines.push('  // #endif')
-            jsonLines.push('}')
-
-            // 使用 comment-json 解析带注释的 JSON
-            const conditionalObj = parse(jsonLines.join('\n'))
-
-            // 直接将条件编译的属性展开到当前对象
-            assign(result, conditionalObj)
+      // 如果原来有逗号，需要给前一个有效属性加上逗号
+      if (comma) {
+        // 往前找到最后一个属性行
+        for (let j = i - 1; j >= 0; j--) {
+          if (lines[j].includes(':') && !lines[j].includes('//')) {
+            if (!lines[j].includes(',')) {
+              lines[j] = `${lines[j]},`
+            }
+            break
           }
         }
-        else {
-          result[key] = processObject(value)
-        }
       }
-
-      return result
     }
-
-    return obj
   }
 
-  // 处理配置
-  const processedConfig = processObject(config)
-
-  // 直接使用 comment-json 的 stringify，它会保留注释
-  return stringify(processedConfig, null, 2)
-}
-
-export function define(config: Record<string, any>): Define {
-  return new Define(config)
-}
-
-export class Define {
-  constructor(private config: Record<string, any>) {}
-
-  public if(): this {
-    return this
-  }
-
-  public nif(): this {
-    return this
-  }
+  return lines.join('\n')
 }

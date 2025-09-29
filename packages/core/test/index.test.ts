@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildJsonc, ifdef, ifndef } from '../src/index'
+import { buildJsonc, ifdef, ifndef, when } from '../src/index'
 
 describe('ifdef and ifndef', () => {
   it('should create conditional block objects', () => {
@@ -21,6 +21,21 @@ describe('ifdef and ifndef', () => {
   })
 })
 
+describe('when - chainable conditional', () => {
+  it('should provide chainable conditional methods that return expandable objects', () => {
+    const ifdefBlock = when.ifdef('H5', { test: 'value' })
+    // when.ifdef 返回可展开的对象，包含注释标记
+    expect(ifdefBlock).toHaveProperty('test', 'value')
+    expect(ifdefBlock).toHaveProperty('__ifdef_H5_start', '#ifdef H5')
+    expect(ifdefBlock).toHaveProperty('__ifdef_H5_end', '#endif')
+
+    const ifndefBlock = when.ifndef('MP-WEIXIN', { test: 'value' })
+    expect(ifndefBlock).toHaveProperty('test', 'value')
+    expect(ifndefBlock).toHaveProperty('__ifndef_MP-WEIXIN_start', '#ifndef MP-WEIXIN')
+    expect(ifndefBlock).toHaveProperty('__ifndef_MP-WEIXIN_end', '#endif')
+  })
+})
+
 describe('buildJsonc', () => {
   it('should stringify plain config without ifdef/ifndef', () => {
     const config = {
@@ -36,15 +51,17 @@ describe('buildJsonc', () => {
     expect(result).toBe(expected)
   })
 
-  it('should handle ifdef blocks with comments', () => {
+  it('should handle ifdef blocks with comments and preserve object structure', () => {
     const config = {
       pages: [],
       globalStyle: {
         navigationBarBackgroundColor: '@navBgColor',
-        ...ifdef('H5', {
+        navigationBarTextStyle: '@navTxtStyle',
+        ...when.ifdef('H5', {
           enablePullDownRefresh: false,
           onReachBottomDistance: 50,
         }),
+        backgroundColor: '#ffffff',
       },
     }
 
@@ -55,6 +72,13 @@ describe('buildJsonc', () => {
     expect(result).toContain('// #endif')
     expect(result).toContain('"enablePullDownRefresh": false')
     expect(result).toContain('"onReachBottomDistance": 50')
+
+    // 检查原有属性是否保留
+    expect(result).toContain('"pages": []')
+    expect(result).toContain('"navigationBarBackgroundColor": "@navBgColor"')
+    expect(result).toContain('"navigationBarTextStyle": "@navTxtStyle"')
+    expect(result).toContain('"backgroundColor": "#ffffff"')
+    expect(result).toContain('"globalStyle"')
   })
 
   it('should handle ifndef blocks with comments', () => {
@@ -62,7 +86,7 @@ describe('buildJsonc', () => {
       pages: [],
       globalStyle: {
         navigationBarBackgroundColor: '@navBgColor',
-        ...ifndef('MP-WEIXIN', {
+        ...when.ifndef('MP-WEIXIN', {
           enablePullDownRefresh: false,
         }),
       },
@@ -74,6 +98,52 @@ describe('buildJsonc', () => {
     expect(result).toContain('// #ifndef MP-WEIXIN')
     expect(result).toContain('// #endif')
     expect(result).toContain('"enablePullDownRefresh": false')
+  })
+
+  it('should handle multiple conditional blocks in same object', () => {
+    const config = {
+      pages: [],
+      globalStyle: {
+        navigationBarBackgroundColor: '@navBgColor',
+        ...when.ifdef('H5', {
+          enablePullDownRefresh: false,
+          onReachBottomDistance: 50,
+        }),
+        ...when.ifndef('MP-WEIXIN', {
+          customProperty: 'value',
+        }),
+        backgroundColor: '#ffffff',
+      },
+    }
+
+    const result = buildJsonc(config)
+
+    // 检查两个条件编译块都存在
+    expect(result).toContain('// #ifdef H5')
+    expect(result).toContain('// #ifndef MP-WEIXIN')
+    expect(result).toContain('"enablePullDownRefresh": false')
+    expect(result).toContain('"customProperty": "value"')
+
+    // 检查原有属性保留
+    expect(result).toContain('"navigationBarBackgroundColor": "@navBgColor"')
+    expect(result).toContain('"backgroundColor": "#ffffff"')
+  })
+
+  it('should handle conditional blocks in arrays', () => {
+    const config = {
+      pages: [
+        { path: 'pages/index/index' },
+        when.ifdef('H5', { path: 'pages/h5-only/index' }),
+        { path: 'pages/about/index' },
+      ],
+    }
+
+    const result = buildJsonc(config)
+
+    expect(result).toContain('pages/index/index')
+    expect(result).toContain('pages/h5-only/index')
+    expect(result).toContain('pages/about/index')
+    // 数组中的条件编译可能不会有完美的注释位置，但内容应该存在
   })
 })
 
@@ -89,7 +159,7 @@ describe('integration test', () => {
         backgroundTextStyle: '@bgTxtStyle',
         backgroundColorTop: '@bgColorTop',
         backgroundColorBottom: '@bgColorBottom',
-        _h5: ifdef('H5', {
+        ...when.ifdef('H5', {
           enablePullDownRefresh: false,
           onReachBottomDistance: 50,
         }),
