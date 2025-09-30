@@ -39,6 +39,42 @@ export default definePage({
 
 ### Conditional Compilation
 
+#### New Chainable API (Recommended)
+
+```typescript
+import { define, definePage } from '@vite-plugin-uni-helper/core'
+
+export default definePage({
+  pages: [
+    define({
+      name: 'Page1',
+      path: '/pages/demo/demo',
+      style: define({
+        navigationBarTitleText: '设置',
+      }).ifdef('H5', {
+        navigationStyle: 'custom'
+      })
+    }).ifndef('H5', {
+      meta: {
+        auth: true
+      }
+    })
+  ],
+  globalStyle: define({
+    navigationBarBackgroundColor: '@navBgColor',
+    navigationBarTextStyle: '@navTxtStyle',
+    backgroundColor: '@bgColor',
+  }).ifdef('H5', {
+    enablePullDownRefresh: false,
+    onReachBottomDistance: 50,
+  }).ifndef('MP-WEIXIN', {
+    navigationStyle: 'custom',
+  }),
+})
+```
+
+#### Legacy Spread API (Still Supported)
+
 ```typescript
 import { definePage, ifdef, ifndef } from '@vite-plugin-uni-helper/core'
 
@@ -99,13 +135,21 @@ The generated `pages.json` will include conditional compilation comments:
 
 Type-safe configuration helper function.
 
+### `define<T>(baseData: T): DefineChain<T>`
+
+Create a chainable conditional compilation object that supports `ifdef` and `ifndef` methods.
+
+**Returns**: A chainable object with the following methods:
+- `ifdef(condition: string, data: Record<string, any>)`: Add conditional block for specified platform
+- `ifndef(condition: string, data: Record<string, any>)`: Add conditional block that excludes specified platform
+
 ### `ifdef(condition: string, data: object)`
 
-Create conditional compilation block for specified platform.
+Create conditional compilation block for specified platform. (Legacy API)
 
 ### `ifndef(condition: string, data: object)`
 
-Create conditional compilation block that excludes specified platform.
+Create conditional compilation block that excludes specified platform. (Legacy API)
 
 ### `loadPagesConfig(configPath?: string): Promise<any>`
 

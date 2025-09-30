@@ -1,8 +1,22 @@
-import { ifdef } from '../../src/index'
+import { define } from '../../src/index'
 
 export default {
-  pages: [],
-  globalStyle: {
+  pages: [
+    define({
+      name: 'IndexPage',
+      path: '/pages/index/index',
+      style: define({
+        navigationBarTitleText: '首页',
+      }).ifdef('H5', {
+        navigationStyle: 'custom',
+      }),
+    }).ifndef('H5', {
+      meta: {
+        auth: false,
+      },
+    }),
+  ],
+  globalStyle: define({
     // 导航栏配置
     navigationBarBackgroundColor: '@navBgColor',
     navigationBarTextStyle: '@navTxtStyle',
@@ -12,13 +26,15 @@ export default {
     backgroundTextStyle: '@bgTxtStyle',
     backgroundColorTop: '@bgColorTop',
     backgroundColorBottom: '@bgColorBottom',
-
+  }).ifdef('H5', {
     // H5平台特有配置
-    ...ifdef('H5', {
-      enablePullDownRefresh: false,
-      onReachBottomDistance: 50,
-    }),
-  },
+    enablePullDownRefresh: false,
+    onReachBottomDistance: 50,
+  }).ifndef('MP-WEIXIN', {
+    // 非微信小程序特有配置
+    enablePullDownRefresh: true,
+    backgroundColorTop: '#ffffff',
+  }),
   easycom: {
     autoscan: true,
     custom: {
