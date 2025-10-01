@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { buildJsonc, define } from '../src/index'
+import { buildJsonc, define, getDefineData } from '../src/index'
 
 describe('define API', () => {
   it('should create chainable conditional objects', () => {
     const baseData = { test: 'value' }
     const defineChain = define(baseData)
+    const defineData = getDefineData(defineChain)
 
-    expect(defineChain).toHaveProperty('__defineData')
-    expect(defineChain.__defineData.base).toEqual(baseData)
-    expect(defineChain.__defineData.conditionals).toEqual([])
+    expect(defineData).toBeDefined()
+    expect(defineData.base).toEqual(baseData)
+    expect(defineData.conditionals).toEqual([])
     expect(typeof defineChain.ifdef).toBe('function')
     expect(typeof defineChain.ifndef).toBe('function')
   })
@@ -17,14 +18,15 @@ describe('define API', () => {
     const result = define({ base: 'value' })
       .ifdef('H5', { h5Only: true })
       .ifdef('MP-WEIXIN', { mpOnly: true })
+    const defineData = getDefineData(result)
 
-    expect(result.__defineData.conditionals).toHaveLength(2)
-    expect(result.__defineData.conditionals[0]).toEqual({
+    expect(defineData.conditionals).toHaveLength(2)
+    expect(defineData.conditionals[0]).toEqual({
       type: 'ifdef',
       condition: 'H5',
       data: { h5Only: true },
     })
-    expect(result.__defineData.conditionals[1]).toEqual({
+    expect(defineData.conditionals[1]).toEqual({
       type: 'ifdef',
       condition: 'MP-WEIXIN',
       data: { mpOnly: true },
@@ -35,14 +37,15 @@ describe('define API', () => {
     const result = define({ base: 'value' })
       .ifndef('H5', { notH5: true })
       .ifndef('MP-WEIXIN', { notMp: true })
+    const defineData = getDefineData(result)
 
-    expect(result.__defineData.conditionals).toHaveLength(2)
-    expect(result.__defineData.conditionals[0]).toEqual({
+    expect(defineData.conditionals).toHaveLength(2)
+    expect(defineData.conditionals[0]).toEqual({
       type: 'ifndef',
       condition: 'H5',
       data: { notH5: true },
     })
-    expect(result.__defineData.conditionals[1]).toEqual({
+    expect(defineData.conditionals[1]).toEqual({
       type: 'ifndef',
       condition: 'MP-WEIXIN',
       data: { notMp: true },
@@ -53,14 +56,15 @@ describe('define API', () => {
     const result = define({ base: 'value' })
       .ifdef('H5', { h5Only: true })
       .ifndef('MP-WEIXIN', { notMp: true })
+    const defineData = getDefineData(result)
 
-    expect(result.__defineData.conditionals).toHaveLength(2)
-    expect(result.__defineData.conditionals[0]).toEqual({
+    expect(defineData.conditionals).toHaveLength(2)
+    expect(defineData.conditionals[0]).toEqual({
       type: 'ifdef',
       condition: 'H5',
       data: { h5Only: true },
     })
-    expect(result.__defineData.conditionals[1]).toEqual({
+    expect(defineData.conditionals[1]).toEqual({
       type: 'ifndef',
       condition: 'MP-WEIXIN',
       data: { notMp: true },

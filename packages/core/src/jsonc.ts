@@ -2,6 +2,7 @@ import type { DefineChain } from './types'
 import process from 'node:process'
 import { stringify } from 'comment-json'
 import { loadConfig } from 'unconfig'
+import { DEFINE_DATA_SYMBOL } from './types'
 
 /**
  * 创建支持链式调用的条件编译对象
@@ -9,7 +10,7 @@ import { loadConfig } from 'unconfig'
 export function define<T = any>(baseData: T): DefineChain<T> {
   const createDefineChain = (data: T, conditionals: Array<{ type: 'ifdef' | 'ifndef', condition: string, data: any }>): DefineChain<T> => {
     return {
-      __defineData: {
+      [DEFINE_DATA_SYMBOL]: {
         base: data,
         conditionals,
       },
@@ -50,7 +51,7 @@ export async function loadDefineConfig(name: string, cwd = process.cwd()): Promi
  * 检查对象是否为 DefineChain 对象
  */
 function isDefineChain(obj: any): obj is DefineChain {
-  return obj && typeof obj === 'object' && obj.__defineData && Array.isArray(obj.__defineData.conditionals)
+  return obj && typeof obj === 'object' && obj[DEFINE_DATA_SYMBOL] && Array.isArray(obj[DEFINE_DATA_SYMBOL].conditionals)
 }
 
 /**
@@ -64,7 +65,7 @@ function processConfig(config: any): any {
   if (config && typeof config === 'object') {
     if (isDefineChain(config)) {
       // 处理 DefineChain 对象
-      const { base, conditionals } = config.__defineData
+      const { base, conditionals } = config[DEFINE_DATA_SYMBOL]
       const result: any = processConfig(base) // 递归处理基础数据
 
       // 为每个条件编译块添加注释标记
