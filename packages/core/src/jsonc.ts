@@ -1,16 +1,17 @@
-import type { DefineChain } from './types'
+import type { DefineChain, DefineChainInternal } from './types'
 import process from 'node:process'
 import { stringify } from 'comment-json'
 import { loadConfig } from 'unconfig'
-import { DEFINE_DATA_SYMBOL } from './types'
+import { isDefineChain } from './types'
+import { isObject } from './utils'
 
 /**
  * 创建支持链式调用的条件编译对象
  */
 export function define<T = any>(baseData: T): DefineChain<T> {
-  const createDefineChain = (data: T, conditionals: Array<{ type: 'ifdef' | 'ifndef', condition: string, data: any }>): DefineChain<T> => {
+  const createDefineChain = (data: T, conditionals: Array<{ type: 'ifdef' | 'ifndef', condition: string, data: any }>): DefineChainInternal<T> => {
     return {
-      [DEFINE_DATA_SYMBOL]: {
+      __internal: {
         base: data,
         conditionals,
       },
@@ -48,13 +49,6 @@ export async function loadDefineConfig(name: string, cwd = process.cwd()): Promi
 }
 
 /**
- * 检查对象是否为 DefineChain 对象
- */
-function isDefineChain(obj: any): obj is DefineChain {
-  return obj && typeof obj === 'object' && obj[DEFINE_DATA_SYMBOL] && Array.isArray(obj[DEFINE_DATA_SYMBOL].conditionals)
-}
-
-/**
  * 递归处理配置对象，将 DefineChain 转换为带注释标记的普通对象
  */
 function processConfig(config: any): any {
@@ -62,10 +56,10 @@ function processConfig(config: any): any {
     return config.map(item => processConfig(item))
   }
 
-  if (config && typeof config === 'object') {
+  if (config && isObject(config)) {
     if (isDefineChain(config)) {
       // 处理 DefineChain 对象
-      const { base, conditionals } = config[DEFINE_DATA_SYMBOL]
+      const { base, conditionals } = config.__internal
       const result: any = processConfig(base) // 递归处理基础数据
 
       // 为每个条件编译块添加注释标记
