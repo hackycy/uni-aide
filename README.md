@@ -1,3 +1,3 @@
-# vite-plugin-uni-helper
+# vite-plugin-uni
 
-Uni Helper
+uni vite plugin repo

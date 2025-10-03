@@ -1,8 +1,8 @@
 {
-  "name": "@vite-plugin-uni/core",
+  "name": "@vite-plugin-uni/types",
   "type": "module",
   "version": "0.0.0",
-  "description": "@vite-plugin-uni/core",
+  "description": "@vite-plugin-uni/types",
   "author": "hackycy",
   "license": "MIT",
   "homepage": "https://github.com/hackycy/vite-plugin-uni#readme",
@@ -14,7 +14,18 @@
   "keywords": [],
   "sideEffects": false,
   "exports": {
-    ".": "./dist/index.mjs"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./manifest": {
+      "types": "./dist/manifest/index.d.mts",
+      "import": "./dist/manifest/index.mjs"
+    },
+    "./pages": {
+      "types": "./dist/pages/index.d.mts",
+      "import": "./dist/pages/index.mjs"
+    }
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
@@ -25,12 +36,6 @@
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
-    "prepublishOnly": "nr build",
-    "start": "tsx src/index.ts",
-    "test": "vitest"
-  },
-  "dependencies": {
-    "comment-json": "^4.4.1",
-    "unconfig": "^7.3.3"
+    "prepublishOnly": "nr build"
   }
 }

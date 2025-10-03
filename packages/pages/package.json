@@ -1,8 +1,8 @@
 {
-  "name": "@vite-plugin-uni/core",
+  "name": "@vite-plugin-uni/pages",
   "type": "module",
   "version": "0.0.0",
-  "description": "@vite-plugin-uni/core",
+  "description": "@vite-plugin-uni/pages",
   "author": "hackycy",
   "license": "MIT",
   "homepage": "https://github.com/hackycy/vite-plugin-uni#readme",
@@ -25,12 +25,14 @@
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
-    "prepublishOnly": "nr build",
-    "start": "tsx src/index.ts",
-    "test": "vitest"
+    "prepublishOnly": "nr build"
   },
-  "dependencies": {
-    "comment-json": "^4.4.1",
-    "unconfig": "^7.3.3"
+  "peerDependencies": {
+    "vite": "^4.0.0 || ^5.0.0 || ^6.0.0"
+  },
+  "devDependencies": {
+    "@vite-plugin-uni/core": "workspace:^",
+    "@vite-plugin-uni/types": "workspace:^",
+    "vite": "catalog:"
   }
 }
