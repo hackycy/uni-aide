@@ -13,7 +13,11 @@
     "release": "bumpp -r && pnpm -r publish",
     "test": "nr -r test",
     "typecheck": "tsc --noEmit",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks",
+    "play:h5": "pnpm -C playground dev:h5",
+    "play:build:h5": "pnpm -C playground build:h5",
+    "play:mp": "pnpm -C playground dev:mp-weixin",
+    "play:build:mp": "pnpm -C playground build:mp-weixin"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",

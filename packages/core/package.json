@@ -30,6 +30,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "ast-kit": "^2.1.2",
     "comment-json": "^4.4.1",
     "unconfig": "^7.3.3"
   }
