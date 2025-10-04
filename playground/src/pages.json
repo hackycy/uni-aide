@@ -3,7 +3,13 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "uni-app"
+        "navigationBarTitleText": "UNI_APP",
+        // #ifdef H5
+        "navigationStyle": "custom",
+        // #endif
+        // #ifdef MP-WEIXIN
+        "enablePullDownRefresh": true
+        // #endif
       }
     }
   ],

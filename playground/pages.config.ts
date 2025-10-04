@@ -1,12 +1,18 @@
-import { defineUniPages } from '@vite-plugin-uni/pages'
+import { define, defineUniPages } from '@vite-plugin-uni/pages'
+
+const title = 'UNI_APP'
 
 export default defineUniPages({
   pages: [
     {
       path: 'pages/index/index',
-      style: {
-        navigationBarTitleText: 'uni-app',
-      },
+      style: define({
+        navigationBarTitleText: title,
+      }).ifdef('H5', {
+        navigationStyle: 'custom',
+      }).ifdef('MP-WEIXIN', {
+        enablePullDownRefresh: true,
+      }),
     },
   ],
   globalStyle: {
