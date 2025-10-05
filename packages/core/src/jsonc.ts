@@ -141,5 +141,51 @@ export function buildJsonc(config: any): string {
     processedLines.push(line)
   }
 
-  return processedLines.join('\n')
+  // 后处理：移除最后一个有效属性的逗号
+  const result = processedLines.join('\n')
+  return removeTrailingCommas(result)
+}
+
+/**
+ * 移除 JSON 对象中最后一个属性的尾随逗号
+ */
+function removeTrailingCommas(jsonString: string): string {
+  const lines = jsonString.split('\n')
+  const stack: number[] = [] // 记录每个对象/数组的起始行
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    // 记录对象/数组的开始
+    if (trimmed.endsWith('{') || trimmed.endsWith('[')) {
+      stack.push(i)
+    }
+
+    // 处理对象/数组的结束
+    if (trimmed === '}' || trimmed === '},' || trimmed === ']' || trimmed === '],') {
+      if (stack.length > 0) {
+        const startIdx = stack.pop()!
+
+        // 向前查找最后一个有效属性（不是注释）
+        for (let j = i - 1; j > startIdx; j--) {
+          const prevLine = lines[j]
+          const prevTrimmed = prevLine.trim()
+
+          // 跳过注释和空行
+          if (prevTrimmed.startsWith('//') || prevTrimmed === '') {
+            continue
+          }
+
+          // 如果找到有逗号的属性行，移除逗号
+          if (prevLine.includes(':') && prevLine.endsWith(',')) {
+            lines[j] = prevLine.slice(0, -1)
+          }
+          break
+        }
+      }
+    }
+  }
+
+  return lines.join('\n')
 }
