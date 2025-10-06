@@ -1,0 +1,41 @@
+{
+  "name": "@vite-plugin-uni/manifest",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "@vite-plugin-uni/manifest",
+  "author": "hackycy",
+  "license": "MIT",
+  "homepage": "https://github.com/hackycy/vite-plugin-uni#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hackycy/vite-plugin-uni.git"
+  },
+  "bugs": "https://github.com/hackycy/vite-plugin-uni/issues",
+  "keywords": [],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepublishOnly": "nr build"
+  },
+  "peerDependencies": {
+    "vite": "^4.0.0 || ^5.0.0 || ^6.0.0"
+  },
+  "dependencies": {
+    "@vite-plugin-uni/core": "workspace:^",
+    "@vite-plugin-uni/types": "workspace:^",
+    "c12": "catalog:"
+  },
+  "devDependencies": {
+    "vite": "catalog:"
+  }
+}

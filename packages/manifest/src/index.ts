@@ -1,46 +1,46 @@
-import type { PagesConfig } from '@vite-plugin-uni/types/pages'
+import type { UserManifestConfig } from '@vite-plugin-uni/types/manifest'
 import type { Plugin } from 'vite'
-import type { UniPagesOptions } from './types'
+import type { UniManifestOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { buildJsonc, loadDefineConfig } from '@vite-plugin-uni/core'
-import { PAGE_CONFIG_FILE, PAGE_JSON_FILE } from './const'
+import { MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } from './const'
 
 export * from './types'
 export { define } from '@vite-plugin-uni/core'
-export * from '@vite-plugin-uni/types/pages'
+export * from '@vite-plugin-uni/types/manifest'
 
 /**
  * define helper
  */
-export function defineConfig(config: PagesConfig) {
+export function defineConfig(config: UserManifestConfig) {
   return config
 }
 
-async function writePagesJSON(path: string, json: string) {
+async function writeManifestJSON(path: string, json: string) {
   await fs.promises.writeFile(path, json, { encoding: 'utf-8' })
 }
 
-export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise<Plugin> {
+export async function VitePluginUniManifest(options: UniManifestOptions = {}): Promise<Plugin> {
   let root = process.cwd()
-  let resolvedPagesJSONPath: string = ''
+  let resolvedManifestJSONPath: string = ''
   let watchedFiles: string[] = []
 
   return {
-    name: '@vite-plugin-uni/pages',
+    name: '@vite-plugin-uni/manifest',
     enforce: 'pre',
     async configResolved(config) {
       root = config.root
-      resolvedPagesJSONPath = path.join(
+      resolvedManifestJSONPath = path.join(
         config.root,
         options.outDir ?? 'src',
-        PAGE_JSON_FILE,
+        MANIFEST_JSON_FILE,
       )
 
-      const [defineConfig, sources] = await loadDefineConfig(PAGE_CONFIG_FILE, config.root)
+      const [defineConfig, sources] = await loadDefineConfig(MANIFEST_CONFIG_FILE, config.root)
       watchedFiles = sources
-      await writePagesJSON(resolvedPagesJSONPath, buildJsonc(defineConfig))
+      await writeManifestJSON(resolvedManifestJSONPath, buildJsonc(defineConfig))
     },
     configureServer(server) {
       if (watchedFiles && watchedFiles.length > 0) {
@@ -57,15 +57,15 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
         }
 
         try {
-          const [config] = await loadDefineConfig(PAGE_CONFIG_FILE, root)
-          await writePagesJSON(resolvedPagesJSONPath, buildJsonc(config))
+          const [config] = await loadDefineConfig(MANIFEST_CONFIG_FILE, root)
+          await writeManifestJSON(resolvedManifestJSONPath, buildJsonc(config))
         }
         catch (err) {
-          server.config.logger.error(`Failed to process ${PAGE_CONFIG_FILE}: ${err}`)
+          server.config.logger.error(`Failed to process ${MANIFEST_CONFIG_FILE}: ${err}`)
         }
       }
     },
   }
 }
 
-export default VitePluginUniPages
+export default VitePluginUniManifest
