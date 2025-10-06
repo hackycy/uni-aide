@@ -18,7 +18,7 @@ export function defineUniPages(config: PagesConfig) {
   return config
 }
 
-async function updatePagesJSON(path: string, json: string) {
+async function writePagesJSON(path: string, json: string) {
   await fs.promises.writeFile(path, json, { encoding: 'utf-8' })
 }
 
@@ -38,8 +38,9 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
         PAGE_JSON_FILE,
       )
 
-      const [_, sources] = await loadDefineConfig(PAGE_CONFIG_FILE, config.root)
+      const [defineConfig, sources] = await loadDefineConfig(PAGE_CONFIG_FILE, config.root)
       watchedFiles = sources
+      await writePagesJSON(resolvedPagesJSONPath, buildJsonc(defineConfig))
     },
     configureServer(server) {
       if (watchedFiles && watchedFiles.length > 0) {
@@ -57,7 +58,7 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
 
         try {
           const [config] = await loadDefineConfig(PAGE_CONFIG_FILE, root)
-          await updatePagesJSON(resolvedPagesJSONPath, buildJsonc(config))
+          await writePagesJSON(resolvedPagesJSONPath, buildJsonc(config))
         }
         catch (err) {
           server.config.logger.error(`Failed to process ${PAGE_CONFIG_FILE}: ${err}`)
