@@ -10,6 +10,7 @@
     "prepublishOnly": "nr build",
     "docs": "pnpm -C docs run docs:dev",
     "docs:build": "pnpm -C docs run docs:build",
+    "bump": "bumpp -r",
     "release": "bumpp -r && pnpm -r publish",
     "test": "nr -r test",
     "typecheck": "tsc --noEmit",
