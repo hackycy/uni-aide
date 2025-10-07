@@ -61,6 +61,7 @@
     "@dcloudio/uni-stacktracey": "3.0.0-4070620250821001",
     "@dcloudio/vite-plugin-uni": "3.0.0-4070620250821001",
     "@uni-helper/plugin-uni": "^0.1.0",
+    "@vite-plugin-uni/manifest": "workspace:^",
     "@vite-plugin-uni/pages": "workspace:^",
     "@vue/runtime-core": "^3.4.21",
     "@vue/tsconfig": "^0.1.3",

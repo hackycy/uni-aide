@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { buildJsonc, loadDefineConfig } from '@vite-plugin-uni/core'
-import { MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } from './const'
+import { DEFAULT_MANIFEST_CONFIG, MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } from './const'
 
 export * from './types'
 export { define } from '@vite-plugin-uni/core'
@@ -38,7 +38,7 @@ export async function VitePluginUniManifest(options: UniManifestOptions = {}): P
         MANIFEST_JSON_FILE,
       )
 
-      const [defineConfig, sources] = await loadDefineConfig(MANIFEST_CONFIG_FILE, config.root)
+      const [defineConfig, sources] = await loadDefineConfig(MANIFEST_CONFIG_FILE, config.root, DEFAULT_MANIFEST_CONFIG)
       watchedFiles = sources
       await writeManifestJSON(resolvedManifestJSONPath, buildJsonc(defineConfig))
     },
@@ -57,7 +57,7 @@ export async function VitePluginUniManifest(options: UniManifestOptions = {}): P
         }
 
         try {
-          const [config] = await loadDefineConfig(MANIFEST_CONFIG_FILE, root)
+          const [config] = await loadDefineConfig(MANIFEST_CONFIG_FILE, root, DEFAULT_MANIFEST_CONFIG)
           await writeManifestJSON(resolvedManifestJSONPath, buildJsonc(config))
         }
         catch (err) {

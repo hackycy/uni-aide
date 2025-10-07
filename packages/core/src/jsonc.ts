@@ -33,7 +33,7 @@ export function define<T = any>(baseData: T): DefineChain<T> {
   return createDefineChain(baseData, [])
 }
 
-export async function loadDefineConfig(name: string, cwd = process.cwd()): Promise<[Record<string, any>, string[]]> {
+export async function loadDefineConfig(name: string, cwd = process.cwd(), defaults: any = {}): Promise<[Record<string, any>, string[]]> {
   const { config, sources } = await loadConfig({
     sources: [
       {
@@ -42,7 +42,7 @@ export async function loadDefineConfig(name: string, cwd = process.cwd()): Promi
       },
     ],
     cwd,
-    defaults: {},
+    defaults,
   })
 
   return [config, sources]

@@ -1,8 +1,8 @@
-import { define, defineUniPages } from '@vite-plugin-uni/pages'
+import { define, defineConfig } from '@vite-plugin-uni/pages'
 
 const title = 'UNI_APP'
 
-export default defineUniPages({
+export default defineConfig({
   pages: [
     {
       path: 'pages/index/index',
