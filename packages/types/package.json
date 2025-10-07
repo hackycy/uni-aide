@@ -1,7 +1,7 @@
 {
   "name": "@vite-plugin-uni/types",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "@vite-plugin-uni/types",
   "author": "hackycy",
   "license": "MIT",
