@@ -1,5 +1,6 @@
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildJsonc, define, getDefineData } from '../src/index'
+import { buildJsonc, define, getDefineData, parseConfigFileWithConditionals } from '../src/index'
 
 describe('define API', () => {
   it('should create chainable conditional objects', () => {
@@ -141,5 +142,32 @@ describe('buildJsonc with define API', () => {
     expect(result).toContain('"notMpProp": "notMpValue"')
     expect(result).toContain('"appProp": "appValue"')
     expect(result).toContain('"base": "value"')
+  })
+})
+
+describe('parseConfigFileWithConditionals', () => {
+  it('should parse config file with conditional comments', async () => {
+    const configPath = path.resolve(__dirname, './fixtures/pages-with-comments.config.js')
+    const config = await parseConfigFileWithConditionals(configPath)
+
+    // 验证配置结构
+    expect(config).toHaveProperty('pages')
+    expect(config).toHaveProperty('globalStyle')
+    expect(config).toHaveProperty('easycom')
+
+    // 将配置转换为 JSONC
+    const jsonc = buildJsonc(config)
+
+    // 验证条件编译注释被正确添加
+    expect(jsonc).toContain('// #ifdef H5')
+    expect(jsonc).toContain('// #ifdef MP-WEIXIN')
+    expect(jsonc).toContain('// #endif')
+
+    // 验证配置值被正确保留
+    expect(jsonc).toContain('"navigationBarTitleText": "UNI_APP"')
+    expect(jsonc).toContain('"navigationStyle": "custom"')
+    expect(jsonc).toContain('"enablePullDownRefresh"')
+    expect(jsonc).toContain('"navigationBarBackgroundColor": "@navBgColor"')
+    expect(jsonc).toContain('"autoscan": true')
   })
 })
