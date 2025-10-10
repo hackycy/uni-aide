@@ -1,1 +1,1 @@
-# @vite-plugin-uni/core
+# @uni-aide/core

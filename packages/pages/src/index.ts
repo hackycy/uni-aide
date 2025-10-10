@@ -1,15 +1,15 @@
-import type { PagesConfig } from '@vite-plugin-uni/types/pages'
+import type { PagesConfig } from '@uni-aide/types/pages'
 import type { Plugin } from 'vite'
 import type { UniPagesOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { buildJsonc, loadDefineConfig } from '@vite-plugin-uni/core'
+import { buildJsonc, loadDefineConfig } from '@uni-aide/core'
 import { PAGE_CONFIG_FILE, PAGE_JSON_FILE } from './const'
 
 export * from './types'
-export { define } from '@vite-plugin-uni/core'
-export * from '@vite-plugin-uni/types/pages'
+export { define } from '@uni-aide/core'
+export * from '@uni-aide/types/pages'
 
 /**
  * define helper
@@ -28,7 +28,7 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
   let watchedFiles: string[] = []
 
   return {
-    name: '@vite-plugin-uni/pages',
+    name: '@uni-aide/vite-plugin-pages',
     enforce: 'pre',
     async configResolved(config) {
       root = config.root

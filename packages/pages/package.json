@@ -1,16 +1,16 @@
 {
-  "name": "@vite-plugin-uni/pages",
+  "name": "@uni-aide/vite-plugin-pages",
   "type": "module",
   "version": "0.0.2",
-  "description": "@vite-plugin-uni/pages",
+  "description": "@uni-aide/vite-plugin-pages",
   "author": "hackycy",
   "license": "MIT",
-  "homepage": "https://github.com/hackycy/vite-plugin-uni#readme",
+  "homepage": "https://github.com/hackycy/uni-aide#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hackycy/vite-plugin-uni.git"
+    "url": "git+https://github.com/hackycy/uni-aide.git"
   },
-  "bugs": "https://github.com/hackycy/vite-plugin-uni/issues",
+  "bugs": "https://github.com/hackycy/uni-aide/issues",
   "keywords": [],
   "sideEffects": false,
   "exports": {
@@ -31,8 +31,8 @@
     "vite": "^4.0.0 || ^5.0.0 || ^6.0.0"
   },
   "dependencies": {
-    "@vite-plugin-uni/core": "workspace:^",
-    "@vite-plugin-uni/types": "workspace:^",
+    "@uni-aide/core": "workspace:^",
+    "@uni-aide/types": "workspace:^",
     "c12": "catalog:"
   },
   "devDependencies": {

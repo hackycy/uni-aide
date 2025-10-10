@@ -1,4 +1,4 @@
-import type { UserManifestConfig } from '@vite-plugin-uni/types/manifest'
+import type { UserManifestConfig } from '@uni-aide/types/manifest'
 
 export const MANIFEST_CONFIG_FILE = 'manifest.config'
 

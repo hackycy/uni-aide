@@ -1,3 +1,3 @@
-# vite-plugin-uni
+# uni-aide
 
-uni vite plugin repo
+uni aide

@@ -1,1 +1,1 @@
-# @vite-plugin-uni/types
+# @uni-aide/types

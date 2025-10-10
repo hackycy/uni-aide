@@ -1,4 +1,4 @@
-import { defineConfig } from '@vite-plugin-uni/manifest'
+import { defineConfig } from '@uni-aide/vite-plugin-manifest'
 
 export default defineConfig({
   'name': 'UNI_APP',

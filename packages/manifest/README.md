@@ -1,1 +1,1 @@
-# @vite-plugin-uni/pages
+# @uni-aide/vite-plugin-pages

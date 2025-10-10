@@ -16,7 +16,7 @@
 ### 基本用法
 
 ```typescript
-import { buildJsonc, parseConfigFileWithConditionals } from '@vite-plugin-uni/core'
+import { buildJsonc, parseConfigFileWithConditionals } from '@uni-aide/core'
 
 // 解析带条件编译注释的配置文件
 const config = await parseConfigFileWithConditionals('./pages.config.ts')
@@ -142,7 +142,7 @@ export default {
 **现有方式（手动使用 define）：**
 
 ```typescript
-import { define } from '@vite-plugin-uni/core'
+import { define } from '@uni-aide/core'
 
 export default {
   globalStyle: define({

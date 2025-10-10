@@ -1,15 +1,15 @@
-import type { UserManifestConfig } from '@vite-plugin-uni/types/manifest'
+import type { UserManifestConfig } from '@uni-aide/types/manifest'
 import type { Plugin } from 'vite'
 import type { UniManifestOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { buildJsonc, loadDefineConfig } from '@vite-plugin-uni/core'
+import { buildJsonc, loadDefineConfig } from '@uni-aide/core'
 import { DEFAULT_MANIFEST_CONFIG, MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } from './const'
 
 export * from './types'
-export { define } from '@vite-plugin-uni/core'
-export * from '@vite-plugin-uni/types/manifest'
+export { define } from '@uni-aide/core'
+export * from '@uni-aide/types/manifest'
 
 /**
  * define helper
@@ -28,7 +28,7 @@ export async function VitePluginUniManifest(options: UniManifestOptions = {}): P
   let watchedFiles: string[] = []
 
   return {
-    name: '@vite-plugin-uni/manifest',
+    name: '@uni-aide/vite-plugin-manifest',
     enforce: 'pre',
     async configResolved(config) {
       root = config.root

@@ -1,4 +1,4 @@
-import { define, defineConfig } from '@vite-plugin-uni/pages'
+import { define, defineConfig } from '@uni-aide/vite-plugin-pages'
 
 const title = 'UNI_APP'
 
