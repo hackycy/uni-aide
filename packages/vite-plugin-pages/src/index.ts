@@ -1,4 +1,4 @@
-import type { PagesConfig } from '@uni-aide/types/pages'
+import type { UserPagesConfig } from '@uni-aide/types/pages'
 import type { Plugin } from 'vite'
 import type { UniPagesOptions } from './types'
 import fs from 'node:fs'
@@ -14,7 +14,7 @@ export * from '@uni-aide/types/pages'
 /**
  * define helper
  */
-export function defineConfig(config: PagesConfig) {
+export function defineConfig(config: UserPagesConfig) {
   return config
 }
 
