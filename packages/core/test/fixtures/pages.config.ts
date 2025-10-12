@@ -1,40 +1,35 @@
-import { define } from '../../src/index'
+// 测试用配置文件 - 包含条件编译注释
 
 export default {
   pages: [
-    define({
-      name: 'IndexPage',
-      path: '/pages/index/index',
-      style: define({
-        navigationBarTitleText: '首页',
-      }).ifdef('H5', {
+    {
+      path: 'pages/index/index',
+      style: {
+        navigationBarTitleText: 'UNI_APP',
+
+        // #ifdef H5
         navigationStyle: 'custom',
-      }),
-    }).ifndef('H5', {
-      meta: {
-        auth: false,
+        // #endif
+
+        // #ifdef MP-WEIXIN
+        enablePullDownRefresh: true,
+        // #endif
       },
-    }),
+    },
   ],
-  globalStyle: define({
-    // 导航栏配置
+  globalStyle: {
     navigationBarBackgroundColor: '@navBgColor',
     navigationBarTextStyle: '@navTxtStyle',
-
-    // 页面背景配置
     backgroundColor: '@bgColor',
     backgroundTextStyle: '@bgTxtStyle',
     backgroundColorTop: '@bgColorTop',
     backgroundColorBottom: '@bgColorBottom',
-  }).ifdef('H5', {
-    // H5平台特有配置
+
+    // #ifdef H5
     enablePullDownRefresh: false,
     onReachBottomDistance: 50,
-  }).ifndef('MP-WEIXIN', {
-    // 非微信小程序特有配置
-    enablePullDownRefresh: true,
-    backgroundColorTop: '#ffffff',
-  }),
+    // #endif
+  },
   easycom: {
     autoscan: true,
     custom: {
