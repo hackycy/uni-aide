@@ -1,11 +1,12 @@
-// 测试用配置文件 - 包含条件编译注释
+// 配置对象外注释
+const TITLE = 'UNI_APP2'
 
 export default {
   pages: [
     {
       path: 'pages/index/index',
       style: {
-        navigationBarTitleText: 'UNI_APP',
+        navigationBarTitleText: TITLE,
 
         // #ifdef H5
         navigationStyle: 'custom',
@@ -16,6 +17,10 @@ export default {
         // #endif
       },
     },
+    // #ifdef MP-WEIXIN
+    /* 1 */
+    {},
+    // #endif
   ],
   globalStyle: {
     navigationBarBackgroundColor: '@navBgColor',

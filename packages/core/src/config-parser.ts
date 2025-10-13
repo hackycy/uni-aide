@@ -4,7 +4,7 @@ import { babelParse } from 'ast-kit'
 import MagicString from 'magic-string'
 
 /**
- * 解析配置文件中的条件编译注释位置信息
+ * 解析配置文件中的条件编译注释位置信息，并将其转换为带注释标记的配置对象
  *
  * @description https://ast-explorer.dev/
  */
@@ -13,6 +13,7 @@ export function parseConditionalComments(source: string) {
   const ast = babelParse(code, 'typescript', {
     attachComment: true,
     sourceType: 'module',
+    cache: false,
   })
 
   // 找到 export default 对应的节点
