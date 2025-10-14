@@ -1,10 +1,15 @@
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadConfigFile, parse, transformComments } from '../src/config-parser'
+import { findConfigFile, loadConfigFile, parse, transformComments } from '../src/config-parser'
 
 describe('transformComments', () => {
   const fixturesDir = resolve(__dirname, 'fixtures')
+
+  it('should findConfigFile', () => {
+    const configPath = findConfigFile(fixturesDir, 'pages.config')
+    expect(configPath).toBe(resolve(fixturesDir, 'pages.config.ts'))
+  })
 
   it('should transform comments in TypeScript config file', () => {
     const configPath = resolve(fixturesDir, 'pages.config.ts')

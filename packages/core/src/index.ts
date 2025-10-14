@@ -1,1 +1,1 @@
-export { parse } from './config-parser'
+export { findConfigFile, parse } from './config-parser'

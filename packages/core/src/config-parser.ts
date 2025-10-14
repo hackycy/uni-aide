@@ -6,6 +6,7 @@ import { babelParse } from 'ast-kit'
 import MagicString from 'magic-string'
 import { loadConfig } from 'unconfig'
 
+const AVAILABLE_CONFIG_EXTENSIONS = ['ts', 'mts', 'js', 'mjs']
 const COMMENT_SYMBOL_PREFIX = '__uni_aide_comment__'
 
 export interface ParseOptions {
@@ -69,21 +70,12 @@ export async function parse(name: string, options: ParseOptions = {}) {
  */
 export async function loadConfigFile(name: string, cwd: string, defaults?: any) {
   // 查找配置文件
-  const { sources } = await loadConfig({
-    sources: [
-      {
-        files: name,
-        extensions: ['ts', 'mts', 'js', 'mjs'],
-      },
-    ],
-    cwd,
-  })
+  const configPath = findConfigFile(cwd, name)
 
-  if (sources.length === 0) {
+  if (!configPath) {
     throw new Error(`Config file not found: ${name}`)
   }
 
-  const configPath = sources[0]
   const configExt = path.extname(configPath).toLowerCase()
   const transformedCode = transformComments(configPath)
 
@@ -97,7 +89,7 @@ export async function loadConfigFile(name: string, cwd: string, defaults?: any) 
     sources: [
       {
         files: tempFilename,
-        extensions: ['ts', 'mts', 'js', 'mjs'],
+        extensions: AVAILABLE_CONFIG_EXTENSIONS,
       },
     ],
     cwd,
@@ -108,6 +100,20 @@ export async function loadConfigFile(name: string, cwd: string, defaults?: any) 
   fs.promises.rm(tempFilePath).catch(() => {})
 
   return JSON.stringify(config, null, 2)
+}
+
+/**
+ * 查找配置文件
+ */
+export function findConfigFile(root: string, name: string) {
+  const candidates = AVAILABLE_CONFIG_EXTENSIONS.map(ext => `${name}.${ext}`)
+  for (const candidate of candidates) {
+    const filePath = path.join(root, candidate)
+    if (fs.existsSync(filePath)) {
+      return filePath
+    }
+  }
+  return null
 }
 
 /**
