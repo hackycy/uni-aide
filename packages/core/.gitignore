@@ -1,2 +1,2 @@
 test/**/*.json
-pages.config.parsed.ts
+test/fixtures/_**/*.ts

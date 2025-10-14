@@ -1,2 +1,2 @@
-export * from './jsonc'
+export { parse } from './config-parser'
 export * from './types'
