@@ -30,10 +30,10 @@ async function writePagesJSON(root: string, jsonPath: string, defaults?: any) {
     })
 
     await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
-    logger?.info(`Generated ${jsonPath}`)
+    logger?.info(`Generated ${jsonPath}`, { clear: true })
   }
   catch {
-    logger?.error(`Failed to generate ${jsonPath}`)
+    logger?.error(`Failed to generate ${jsonPath}`, { clear: true })
   }
 }
 
