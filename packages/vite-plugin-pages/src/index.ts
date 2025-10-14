@@ -4,11 +4,10 @@ import type { UniPagesOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { buildJsonc, loadDefineConfig } from '@uni-aide/core'
+import { findConfigFile, parse } from '@uni-aide/core'
 import { PAGE_CONFIG_FILE, PAGE_JSON_FILE } from './const'
 
 export * from './types'
-export { define } from '@uni-aide/core'
 export * from '@uni-aide/types/pages'
 
 /**
@@ -18,8 +17,13 @@ export function defineConfig(config: UserPagesConfig) {
   return config
 }
 
-async function writePagesJSON(path: string, json: string) {
-  await fs.promises.writeFile(path, json, { encoding: 'utf-8' })
+async function writePagesJSON(root: string, jsonPath: string, defaults?: any) {
+  const jsonc = await parse(PAGE_CONFIG_FILE, {
+    cwd: root,
+    defaults,
+  })
+
+  await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
 }
 
 export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise<Plugin> {
@@ -38,9 +42,19 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
         PAGE_JSON_FILE,
       )
 
-      const [defineConfig, sources] = await loadDefineConfig(PAGE_CONFIG_FILE, config.root)
-      watchedFiles = sources
-      await writePagesJSON(resolvedPagesJSONPath, buildJsonc(defineConfig))
+      const sourceConfigPath = findConfigFile(root, PAGE_CONFIG_FILE)
+      if (!sourceConfigPath) {
+        config.logger.warn(`Config file not found: ${PAGE_CONFIG_FILE}`)
+        return
+      }
+
+      watchedFiles = [sourceConfigPath]
+      try {
+        await writePagesJSON(root, resolvedPagesJSONPath)
+      }
+      catch (err) {
+        config.logger.error(`Failed to process ${PAGE_CONFIG_FILE}: ${err}`)
+      }
     },
     configureServer(server) {
       if (watchedFiles && watchedFiles.length > 0) {
@@ -57,8 +71,7 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
         }
 
         try {
-          const [config] = await loadDefineConfig(PAGE_CONFIG_FILE, root)
-          await writePagesJSON(resolvedPagesJSONPath, buildJsonc(config))
+          await writePagesJSON(root, resolvedPagesJSONPath)
         }
         catch (err) {
           server.config.logger.error(`Failed to process ${PAGE_CONFIG_FILE}: ${err}`)

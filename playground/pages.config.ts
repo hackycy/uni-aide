@@ -1,4 +1,4 @@
-import { define, defineConfig } from '@uni-aide/vite-plugin-pages'
+import { defineConfig } from '@uni-aide/vite-plugin-pages'
 
 const title = 'UNI_APP'
 
@@ -6,13 +6,16 @@ export default defineConfig({
   pages: [
     {
       path: 'pages/index/index',
-      style: define({
+      style: {
         navigationBarTitleText: title,
-      }).ifdef('H5', {
+        // #ifdef H5
         navigationStyle: 'custom',
-      }).ifdef('MP-WEIXIN', {
+        // #endif
+
+        // #ifdef MP-WEIXIN
         enablePullDownRefresh: true,
-      }),
+        // #endif
+      },
     },
   ],
   globalStyle: {
@@ -21,5 +24,4 @@ export default defineConfig({
     navigationBarBackgroundColor: '#F8F8F8',
     backgroundColor: '#F8F8F8',
   },
-},
-)
+})

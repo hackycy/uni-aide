@@ -4,11 +4,10 @@ import type { UniManifestOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { buildJsonc, loadDefineConfig } from '@uni-aide/core'
+import { findConfigFile, parse } from '@uni-aide/core'
 import { DEFAULT_MANIFEST_CONFIG, MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } from './const'
 
 export * from './types'
-export { define } from '@uni-aide/core'
 export * from '@uni-aide/types/manifest'
 
 /**
@@ -18,8 +17,13 @@ export function defineConfig(config: UserManifestConfig) {
   return config
 }
 
-async function writeManifestJSON(path: string, json: string) {
-  await fs.promises.writeFile(path, json, { encoding: 'utf-8' })
+async function writeManifestJSON(root: string, jsonPath: string, defaults?: any) {
+  const jsonc = await parse(MANIFEST_CONFIG_FILE, {
+    cwd: root,
+    defaults,
+  })
+
+  await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
 }
 
 export async function VitePluginUniManifest(options: UniManifestOptions = {}): Promise<Plugin> {
@@ -34,13 +38,23 @@ export async function VitePluginUniManifest(options: UniManifestOptions = {}): P
       root = config.root
       resolvedManifestJSONPath = path.join(
         config.root,
-        options.outDir ?? 'src',
+        typeof options.outDir === 'string' ? options.outDir : 'src',
         MANIFEST_JSON_FILE,
       )
 
-      const [defineConfig, sources] = await loadDefineConfig(MANIFEST_CONFIG_FILE, config.root, DEFAULT_MANIFEST_CONFIG)
-      watchedFiles = sources
-      await writeManifestJSON(resolvedManifestJSONPath, buildJsonc(defineConfig))
+      const sourceConfigPath = findConfigFile(root, MANIFEST_CONFIG_FILE)
+      if (!sourceConfigPath) {
+        config.logger.warn(`Config file not found: ${MANIFEST_CONFIG_FILE}`)
+        return
+      }
+
+      watchedFiles = [sourceConfigPath]
+      try {
+        await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
+      }
+      catch (err) {
+        config.logger.error(`Failed to process ${MANIFEST_CONFIG_FILE}: ${err}`)
+      }
     },
     configureServer(server) {
       if (watchedFiles && watchedFiles.length > 0) {
@@ -57,8 +71,7 @@ export async function VitePluginUniManifest(options: UniManifestOptions = {}): P
         }
 
         try {
-          const [config] = await loadDefineConfig(MANIFEST_CONFIG_FILE, root, DEFAULT_MANIFEST_CONFIG)
-          await writeManifestJSON(resolvedManifestJSONPath, buildJsonc(config))
+          await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
         }
         catch (err) {
           server.config.logger.error(`Failed to process ${MANIFEST_CONFIG_FILE}: ${err}`)
