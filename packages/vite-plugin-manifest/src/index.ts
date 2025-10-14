@@ -1,5 +1,5 @@
 import type { UserManifestConfig } from '@uni-aide/types/manifest'
-import type { Plugin } from 'vite'
+import type { Logger, Plugin } from 'vite'
 import type { UniManifestOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -10,6 +10,11 @@ import { DEFAULT_MANIFEST_CONFIG, MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } fro
 export * from './types'
 export * from '@uni-aide/types/manifest'
 
+let logger: Logger | null = null
+function setLogger(l: Logger) {
+  logger = l
+}
+
 /**
  * define helper
  */
@@ -18,43 +23,63 @@ export function defineConfig(config: UserManifestConfig) {
 }
 
 async function writeManifestJSON(root: string, jsonPath: string, defaults?: any) {
-  const jsonc = await parse(MANIFEST_CONFIG_FILE, {
-    cwd: root,
-    defaults,
-  })
+  try {
+    const jsonc = await parse(MANIFEST_CONFIG_FILE, {
+      cwd: root,
+      defaults,
+    })
 
-  await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
+    await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
+    logger?.info(`Generated ${jsonPath}`)
+  }
+  catch {
+    logger?.error(`Failed to generate ${jsonPath}`)
+  }
+}
+
+function checkManifestJsonFileSync(jsonPath: string) {
+  try {
+    fs.accessSync(jsonPath, fs.constants.F_OK)
+  }
+  catch {
+    // 文件不存在，创建新文件
+
+    try {
+      fs.writeFileSync(jsonPath, JSON.stringify(DEFAULT_MANIFEST_CONFIG, null, 2), { encoding: 'utf-8' })
+    }
+    catch {
+      // ignore
+    }
+  }
 }
 
 export async function VitePluginUniManifest(options: UniManifestOptions = {}): Promise<Plugin> {
-  let root = process.cwd()
-  let resolvedManifestJSONPath: string = ''
+  const root = process.env.VITE_ROOT_DIR || process.cwd()
+  const resolvedManifestJSONPath: string = path.join(
+    root,
+    typeof options.outDir === 'string' ? options.outDir : 'src',
+    MANIFEST_JSON_FILE,
+  )
+
+  // manifest.json文件检查
+  checkManifestJsonFileSync(resolvedManifestJSONPath)
+
   let watchedFiles: string[] = []
 
   return {
     name: '@uni-aide/vite-plugin-manifest',
     enforce: 'pre',
     async configResolved(config) {
-      root = config.root
-      resolvedManifestJSONPath = path.join(
-        config.root,
-        typeof options.outDir === 'string' ? options.outDir : 'src',
-        MANIFEST_JSON_FILE,
-      )
+      setLogger(config.logger)
 
       const sourceConfigPath = findConfigFile(root, MANIFEST_CONFIG_FILE)
       if (!sourceConfigPath) {
-        config.logger.warn(`Config file not found: ${MANIFEST_CONFIG_FILE}`)
+        logger?.warn(`Config file not found: ${MANIFEST_CONFIG_FILE}`)
         return
       }
 
       watchedFiles = [sourceConfigPath]
-      try {
-        await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
-      }
-      catch (err) {
-        config.logger.error(`Failed to process ${MANIFEST_CONFIG_FILE}: ${err}`)
-      }
+      await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
     },
     configureServer(server) {
       if (watchedFiles && watchedFiles.length > 0) {
@@ -70,12 +95,7 @@ export async function VitePluginUniManifest(options: UniManifestOptions = {}): P
           return
         }
 
-        try {
-          await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
-        }
-        catch (err) {
-          server.config.logger.error(`Failed to process ${MANIFEST_CONFIG_FILE}: ${err}`)
-        }
+        await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
       }
     },
   }

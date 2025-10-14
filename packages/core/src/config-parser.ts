@@ -134,7 +134,7 @@ export function reverseComments(node: t.Node, s: MagicString) {
       if (k.startsWith(COMMENT_SYMBOL_PREFIX) && prop.value.type === 'StringLiteral') {
         // 替换为注释
         s.overwrite(prop.start!, prop.end!, `//${prop.value.value}`)
-        // 如果后面有逗号，删除逗号
+        // 如果有尾随逗号则删除
         const nextChar = s.original.charAt(prop.end!)
         if (nextChar === ',') {
           s.remove(prop.end!, prop.end! + 1)
@@ -165,7 +165,7 @@ export function reverseComments(node: t.Node, s: MagicString) {
           && elem.elements[1].type === 'StringLiteral') {
           const commentValue = (elem.elements[1] as t.StringLiteral).value
           s.overwrite(elem.start!, elem.end!, `//${commentValue}`)
-          // 如果后面有逗号，删除逗号
+          // 如果有尾随逗号则删除
           const nextChar = s.original.charAt(elem.end!)
           if (nextChar === ',') {
             s.remove(elem.end!, elem.end! + 1)

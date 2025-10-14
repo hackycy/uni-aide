@@ -1,14 +1,19 @@
 import type { UserPagesConfig } from '@uni-aide/types/pages'
-import type { Plugin } from 'vite'
+import type { Logger, Plugin } from 'vite'
 import type { UniPagesOptions } from './types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { findConfigFile, parse } from '@uni-aide/core'
-import { PAGE_CONFIG_FILE, PAGE_JSON_FILE } from './const'
+import { DEFAULT_PAGES_CONFIG, PAGE_CONFIG_FILE, PAGE_JSON_FILE } from './const'
 
 export * from './types'
 export * from '@uni-aide/types/pages'
+
+let logger: Logger | null = null
+function setLogger(l: Logger) {
+  logger = l
+}
 
 /**
  * define helper
@@ -18,43 +23,63 @@ export function defineConfig(config: UserPagesConfig) {
 }
 
 async function writePagesJSON(root: string, jsonPath: string, defaults?: any) {
-  const jsonc = await parse(PAGE_CONFIG_FILE, {
-    cwd: root,
-    defaults,
-  })
+  try {
+    const jsonc = await parse(PAGE_CONFIG_FILE, {
+      cwd: root,
+      defaults,
+    })
 
-  await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
+    await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
+    logger?.info(`Generated ${jsonPath}`)
+  }
+  catch {
+    logger?.error(`Failed to generate ${jsonPath}`)
+  }
+}
+
+function checkPagesJsonFileSync(jsonPath: string) {
+  try {
+    fs.accessSync(jsonPath, fs.constants.F_OK)
+  }
+  catch {
+    // 文件不存在，创建新文件
+
+    try {
+      fs.writeFileSync(jsonPath, JSON.stringify(DEFAULT_PAGES_CONFIG, null, 2), { encoding: 'utf-8' })
+    }
+    catch {
+      // ignore
+    }
+  }
 }
 
 export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise<Plugin> {
-  let root = process.cwd()
-  let resolvedPagesJSONPath: string = ''
+  const root = process.env.VITE_ROOT_DIR || process.cwd()
+  const resolvedPagesJSONPath: string = path.join(
+    root,
+    typeof options.outDir === 'string' ? options.outDir : 'src',
+    PAGE_JSON_FILE,
+  )
+
+  // pages.json文件检查
+  checkPagesJsonFileSync(resolvedPagesJSONPath)
+
   let watchedFiles: string[] = []
 
   return {
     name: '@uni-aide/vite-plugin-pages',
     enforce: 'pre',
     async configResolved(config) {
-      root = config.root
-      resolvedPagesJSONPath = path.join(
-        config.root,
-        options.outDir ?? 'src',
-        PAGE_JSON_FILE,
-      )
+      setLogger(config.logger)
 
       const sourceConfigPath = findConfigFile(root, PAGE_CONFIG_FILE)
       if (!sourceConfigPath) {
-        config.logger.warn(`Config file not found: ${PAGE_CONFIG_FILE}`)
+        logger?.warn(`Config file not found: ${PAGE_CONFIG_FILE}`)
         return
       }
 
       watchedFiles = [sourceConfigPath]
-      try {
-        await writePagesJSON(root, resolvedPagesJSONPath)
-      }
-      catch (err) {
-        config.logger.error(`Failed to process ${PAGE_CONFIG_FILE}: ${err}`)
-      }
+      await writePagesJSON(root, resolvedPagesJSONPath)
     },
     configureServer(server) {
       if (watchedFiles && watchedFiles.length > 0) {
@@ -70,12 +95,7 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
           return
         }
 
-        try {
-          await writePagesJSON(root, resolvedPagesJSONPath)
-        }
-        catch (err) {
-          server.config.logger.error(`Failed to process ${PAGE_CONFIG_FILE}: ${err}`)
-        }
+        await writePagesJSON(root, resolvedPagesJSONPath)
       }
     },
   }
