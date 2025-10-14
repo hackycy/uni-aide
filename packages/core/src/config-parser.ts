@@ -31,7 +31,7 @@ export async function parse(name: string, options: ParseOptions = {}) {
   const preprocessJson = await loadConfigFile(name, cwd, options.defaults)
 
   const resultCode = `export default ${preprocessJson}`
-  const ast = babelParse(resultCode, 'typescript', {
+  const ast = babelParse(resultCode, 'ts', {
     sourceType: 'module',
     cache: false,
   })
@@ -178,7 +178,7 @@ export function reverseComments(node: t.Node, s: MagicString) {
  */
 export function transformComments(source: string) {
   const code = fs.readFileSync(source, 'utf-8')
-  const ast = babelParse(code, 'typescript', {
+  const ast = babelParse(code, 'ts', {
     attachComment: true,
     sourceType: 'module',
     cache: false,

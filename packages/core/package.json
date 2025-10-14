@@ -27,7 +27,7 @@
     "dev": "unbuild --stub",
     "prepublishOnly": "nr build",
     "start": "tsx src/index.ts",
-    "test": "vitest"
+    "test": "vitest --reporter=verbose"
   },
   "dependencies": {
     "ast-kit": "^2.1.2",

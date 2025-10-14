@@ -1,6 +1,19 @@
 // 配置对象外注释
 const TITLE = 'UNI_APP2'
 
+const refresh = () => true
+
+function dynamicPages(render: boolean) {
+  if (render) {
+    return {
+      // 不支持该写法
+      // #ifdef MP-WEIXIN
+      path: 'pages/index/index',
+      // #endif
+    }
+  }
+}
+
 export default {
   pages: [
     {
@@ -13,13 +26,12 @@ export default {
         // #endif
 
         // #ifdef MP-WEIXIN
-        enablePullDownRefresh: true,
+        enablePullDownRefresh: refresh(),
         // #endif
       },
     },
     // #ifdef MP-WEIXIN
-    /* 1 */
-    {},
+    dynamicPages(true),
     // #endif
   ],
   globalStyle: {
