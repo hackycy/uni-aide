@@ -30,6 +30,7 @@ export default {
         // #endif
       },
     },
+    // comment
     // #ifdef MP-WEIXIN
     dynamicPages(true),
     // #endif
