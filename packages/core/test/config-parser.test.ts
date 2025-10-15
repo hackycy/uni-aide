@@ -11,9 +11,9 @@ describe('transformComments', () => {
     expect(configPath).toBe(resolve(fixturesDir, 'pages.config.ts'))
   })
 
-  it('should transform comments in TypeScript config file', () => {
+  it('should transform comments in TypeScript config file', async () => {
     const configPath = resolve(fixturesDir, 'pages.config.ts')
-    const result = transformComments(configPath)
+    const result = await transformComments(configPath)
 
     // 手动检查
     writeFileSync(resolve(fixturesDir, '_pages.config.transform.ts'), result, 'utf-8')
@@ -32,10 +32,17 @@ describe('transformComments', () => {
     expect(result).toContain('__uni_aide_comment__')
   })
 
-  it('should parse config file', async () => {
+  it('should parse config file (ts)', async () => {
     const result = await parse('pages.config', { cwd: fixturesDir })
 
     // 手动检查
     writeFileSync(resolve(fixturesDir, '_pages.config.parsed.json'), `${result}`, 'utf-8')
+  })
+
+  it('should parse config file (cts)', async () => {
+    const result = await parse('pages2.config', { cwd: fixturesDir })
+
+    // 手动检查
+    writeFileSync(resolve(fixturesDir, '_pages2.config.parsed.json'), `${result}`, 'utf-8')
   })
 })

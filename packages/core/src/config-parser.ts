@@ -32,7 +32,9 @@ export async function parse(name: string, options: ParseOptions = {}) {
   const preprocessJson = await loadConfigFile(name, cwd, options.defaults)
 
   const resultCode = `export default ${preprocessJson}`
-  const ast = babelParse(resultCode, 'ts', {
+  // 将预处理后的 JSON 代码再解析一遍，转换注释标记为注释
+  const ast = babelParse(resultCode, 'js', {
+    attachComment: true,
     sourceType: 'module',
     cache: false,
   })
@@ -42,7 +44,8 @@ export async function parse(name: string, options: ParseOptions = {}) {
   // 找到 export default 对应的节点
   const exportDefaultNode = ast.body.find(node => node.type === 'ExportDefaultDeclaration') as t.ExportDefaultDeclaration | undefined
   if (!exportDefaultNode) {
-    throw new Error('internal parser error: config file must have export default')
+    // never reach
+    throw new Error('internal parser error')
   }
 
   // 配置对象
@@ -54,7 +57,8 @@ export async function parse(name: string, options: ParseOptions = {}) {
   }
 
   if (!configObject) {
-    throw new Error('internal parser error: could not find config object')
+    // never reach
+    throw new Error('internal parser error')
   }
 
   reverseComments(configObject, s)
@@ -77,7 +81,7 @@ export async function loadConfigFile(name: string, cwd: string, defaults?: any) 
   }
 
   const configExt = path.extname(configPath).toLowerCase()
-  const transformedCode = transformComments(configPath)
+  const transformedCode = await transformComments(configPath)
 
   // 生成临时文件
   const tempFilename = `${name}.timestamp-${Date.now()}`
@@ -188,32 +192,56 @@ export function reverseComments(node: t.Node, s: MagicString) {
 /**
  * 解析配置文件中的条件编译注释位置信息，并将其转换为带注释标记的配置对象
  */
-export function transformComments(source: string) {
-  const code = fs.readFileSync(source, 'utf-8')
+export async function transformComments(source: string) {
+  const code = await fs.promises.readFile(source, 'utf-8')
   const ast = babelParse(code, 'ts', {
     attachComment: true,
     sourceType: 'module',
     cache: false,
   })
 
-  // 找到 export default 对应的节点
-  const exportDefaultNode = ast.body.find(node => node.type === 'ExportDefaultDeclaration') as t.ExportDefaultDeclaration | undefined
-  if (!exportDefaultNode) {
-    throw new Error('config file must have export default')
-  }
-
   // 配置对象
   let configObject: t.ObjectExpression | undefined
 
-  if (exportDefaultNode.declaration.type === 'ObjectExpression') {
-    // export default { ... }
-    configObject = exportDefaultNode.declaration
+  // ESM -> export Default
+  const exportDefaultNode = ast.body.find(node => node.type === 'ExportDefaultDeclaration') as t.ExportDefaultDeclaration | undefined
+  if (exportDefaultNode) {
+    if (exportDefaultNode.declaration.type === 'ObjectExpression') {
+      // export default { ... }
+      configObject = exportDefaultNode.declaration
+    }
+    else if (exportDefaultNode.declaration.type === 'CallExpression') {
+      // export default fn({ ... })
+      const callExpression = exportDefaultNode.declaration
+      if (callExpression.arguments.length > 0 && callExpression.arguments[0].type === 'ObjectExpression') {
+        configObject = callExpression.arguments[0]
+      }
+    }
   }
-  else if (exportDefaultNode.declaration.type === 'CallExpression') {
-    // export default fn({ ... })
-    const callExpression = exportDefaultNode.declaration
-    if (callExpression.arguments.length > 0 && callExpression.arguments[0].type === 'ObjectExpression') {
-      configObject = callExpression.arguments[0]
+  else {
+    // CJS -> module.exports =
+    const moduleExportsNode = ast.body.find(node =>
+      node.type === 'ExpressionStatement'
+      && node.expression.type === 'AssignmentExpression'
+      && node.expression.left.type === 'MemberExpression'
+      && node.expression.left.object.type === 'Identifier'
+      && node.expression.left.object.name === 'module'
+      && node.expression.left.property.type === 'Identifier'
+      && node.expression.left.property.name === 'exports',
+    ) as t.ExpressionStatement | undefined
+    if (moduleExportsNode) {
+      const assignment = moduleExportsNode.expression as t.AssignmentExpression
+      if (assignment.right.type === 'ObjectExpression') {
+        // module.exports = { ... }
+        configObject = assignment.right
+      }
+      else if (assignment.right.type === 'CallExpression') {
+        // module.exports = fn({ ... })
+        const callExpression = assignment.right
+        if (callExpression.arguments.length > 0 && callExpression.arguments[0].type === 'ObjectExpression') {
+          configObject = callExpression.arguments[0]
+        }
+      }
     }
   }
 
