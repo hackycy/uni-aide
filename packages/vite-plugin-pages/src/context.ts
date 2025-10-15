@@ -67,10 +67,10 @@ export class PageContext {
       })
 
       await fs.promises.writeFile(this.outputJsonPath, jsonc, { encoding: 'utf-8' })
-      this.logger?.info(`Generated ${this.outputJsonPath}`, { clear: true, timestamp: true })
+      this.logger?.info(`Generated ${this.outputJsonPath}`, { timestamp: true })
     }
     catch {
-      this.logger?.error(`Failed to generate ${this.outputJsonPath}`, { clear: true, timestamp: true })
+      this.logger?.error(`Failed to generate ${this.outputJsonPath}`, { timestamp: true })
     }
   }
 
