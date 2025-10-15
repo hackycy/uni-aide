@@ -2,7 +2,7 @@ import type { UserPagesConfig } from '@uni-aide/types/pages'
 import type { Plugin } from 'vite'
 import type { UniPagesOptions } from './types'
 import fs from 'node:fs'
-import { DEFAULT_PAGES_CONFIG } from './const'
+import { DEFAULT_PAGES_CONFIG, RESOLVED_VIRTUAL_MODULE_ID, VIRTUAL_MODULE_ID } from './const'
 import { PageContext } from './context'
 
 export * from './types'
@@ -45,6 +45,16 @@ export async function VitePluginUniPages(options: UniPagesOptions = {}): Promise
     },
     configureServer(server) {
       ctx.setupViteServer(server)
+    },
+    resolveId(id) {
+      if (id === VIRTUAL_MODULE_ID) {
+        return RESOLVED_VIRTUAL_MODULE_ID
+      }
+    },
+    load(id) {
+      if (id === RESOLVED_VIRTUAL_MODULE_ID) {
+        return ctx.resolveVirtualModule()
+      }
     },
   }
 }

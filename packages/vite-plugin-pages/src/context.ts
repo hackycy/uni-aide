@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { findConfigFile, parse } from '@uni-aide/core'
+import json5 from 'json5'
 import { PAGE_CONFIG_FILE, PAGE_JSON_FILE } from './const'
 
 export class PageContext {
@@ -71,5 +72,23 @@ export class PageContext {
     catch {
       this.logger?.error(`Failed to generate ${this.outputJsonPath}`, { clear: true, timestamp: true })
     }
+  }
+
+  async resolveVirtualModule() {
+    const pagesStr = await fs.promises.readFile(this.outputJsonPath, { encoding: 'utf-8' })
+    let routes: string = '[]'
+    let subRoutes: string = '[]'
+    try {
+      const pages: Record<string, any> = json5.parse(pagesStr)
+      routes = JSON.stringify(pages.pages || [], null, 2)
+      subRoutes = JSON.stringify(pages.subPackages || [], null, 2)
+    }
+    catch {
+      // ignore
+    }
+
+    const pages = `export const pages = ${routes};`
+    const subPackages = `export const subPackages = ${subRoutes};`
+    return [pages, subPackages].join('\n')
   }
 }

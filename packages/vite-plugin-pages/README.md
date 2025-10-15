@@ -32,3 +32,5 @@ export default defineConfig({
   // config here
 })
 ```
+
+> 快速迁移：只需将`pages.json`对象拷贝至`defineConfig`参数内格式化即可，插件会重新输出带有**注释**的`pages.json`

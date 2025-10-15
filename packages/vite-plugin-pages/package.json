@@ -14,12 +14,25 @@
   "keywords": [],
   "sideEffects": false,
   "exports": {
-    ".": "./dist/index.mjs"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./client": {
+      "types": "./client.d.ts"
+    }
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "files": [
+    "client.d.ts",
     "dist"
   ],
   "scripts": {
@@ -33,7 +46,7 @@
   "dependencies": {
     "@uni-aide/core": "workspace:^",
     "@uni-aide/types": "workspace:^",
-    "c12": "catalog:"
+    "json5": "^2.2.3"
   },
   "devDependencies": {
     "vite": "catalog:"
