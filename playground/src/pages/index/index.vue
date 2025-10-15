@@ -9,7 +9,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { pages } from '~pages'
+
 const title = ref('Hello')
+console.log('pages', pages)
 </script>
 
 <style>
