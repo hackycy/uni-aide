@@ -33,4 +33,14 @@ export default defineConfig({
 })
 ```
 
+导入虚拟模块即可访问所有页面的元数据
+
+``` ts
+// env.d.ts
+/// <reference types="@uni-aide/vite-plugin-pages/client" />
+
+import { pages, subPackages } from '~uni-pages'
+console.log(pages, subPackages)
+```
+
 > 快速迁移：只需将`pages.json`对象拷贝至`defineConfig`参数内格式化即可，插件会重新输出带有**注释**的`pages.json`

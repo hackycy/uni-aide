@@ -1,4 +1,4 @@
-declare module '~pages' {
+declare module '~uni-pages' {
   import type { PageMetaDatum } from './src/index'
   import type { SubPackage } from './src/index'
 
