@@ -32,8 +32,7 @@
   },
   "dependencies": {
     "@uni-aide/core": "workspace:^",
-    "@uni-aide/types": "workspace:^",
-    "c12": "catalog:"
+    "@uni-aide/types": "workspace:^"
   },
   "devDependencies": {
     "vite": "catalog:"
