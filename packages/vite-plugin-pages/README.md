@@ -1,3 +1,34 @@
 # @uni-aide/vite-plugin-pages
 
 [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-pages.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-pages)
+
+使用 TypeScript 来编写 uni-app 的 pages.json
+
+## 安装
+
+``` bash
+pnpm add -D @uni-aide/vite-plugin-manifest
+```
+
+## 使用
+
+``` ts
+// vite.config.ts
+import Uni from '@dcloudio/vite-plugin-uni'
+import UniManifest from '@uni-aide/vite-plugin-pages'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [UniManifest(), Uni()],
+})
+```
+
+创建pages.config.(ts|mts|js|mjs), 然后用 TypeScript 编写你的 pages.json
+
+``` ts
+import { defineConfig } from '@uni-aide/vite-plugin-pages'
+
+export default defineConfig({
+  // config here
+})
+```
