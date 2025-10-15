@@ -5,5 +5,3 @@ declare module '~pages' {
   export const pages: PageMetaDatum[]
   export const subPackages: SubPackage[]
 }
-
-export {}
