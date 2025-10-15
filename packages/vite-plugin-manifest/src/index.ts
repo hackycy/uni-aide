@@ -1,19 +1,12 @@
 import type { UserManifestConfig } from '@uni-aide/types/manifest'
-import type { Logger, Plugin } from 'vite'
+import type { Plugin } from 'vite'
 import type { UniManifestOptions } from './types'
 import fs from 'node:fs'
-import path from 'node:path'
-import process from 'node:process'
-import { findConfigFile, parse } from '@uni-aide/core'
-import { DEFAULT_MANIFEST_CONFIG, MANIFEST_CONFIG_FILE, MANIFEST_JSON_FILE } from './const'
+import { DEFAULT_MANIFEST_CONFIG } from './const'
+import { ManifestContext } from './context'
 
 export * from './types'
 export * from '@uni-aide/types/manifest'
-
-let logger: Logger | null = null
-function setLogger(l: Logger) {
-  logger = l
-}
 
 /**
  * define helper
@@ -22,22 +15,7 @@ export function defineConfig(config: UserManifestConfig) {
   return config
 }
 
-async function writeManifestJSON(root: string, jsonPath: string, defaults?: any) {
-  try {
-    const jsonc = await parse(MANIFEST_CONFIG_FILE, {
-      cwd: root,
-      defaults,
-    })
-
-    await fs.promises.writeFile(jsonPath, jsonc, { encoding: 'utf-8' })
-    logger?.info(`Generated ${jsonPath}`, { clear: true })
-  }
-  catch {
-    logger?.error(`Failed to generate ${jsonPath}`, { clear: true })
-  }
-}
-
-function checkManifestJsonFileSync(jsonPath: string) {
+export function checkManifestJsonFileSync(jsonPath: string) {
   try {
     fs.accessSync(jsonPath, fs.constants.F_OK)
   }
@@ -54,49 +32,19 @@ function checkManifestJsonFileSync(jsonPath: string) {
 }
 
 export async function VitePluginUniManifest(options: UniManifestOptions = {}): Promise<Plugin> {
-  const root = process.env.VITE_ROOT_DIR || process.cwd()
-  const resolvedManifestJSONPath: string = path.join(
-    root,
-    typeof options.outDir === 'string' ? options.outDir : 'src',
-    MANIFEST_JSON_FILE,
-  )
-
-  // manifest.json文件检查
-  checkManifestJsonFileSync(resolvedManifestJSONPath)
-
-  let watchedFiles: string[] = []
+  let ctx: ManifestContext
 
   return {
     name: '@uni-aide/vite-plugin-manifest',
     enforce: 'pre',
     async configResolved(config) {
-      setLogger(config.logger)
+      ctx = new ManifestContext(options, config.root)
+      ctx.setLogger(config.logger)
 
-      const sourceConfigPath = findConfigFile(root, MANIFEST_CONFIG_FILE)
-      if (!sourceConfigPath) {
-        logger?.warn(`Config file not found: ${MANIFEST_CONFIG_FILE}`)
-        return
-      }
-
-      watchedFiles = [sourceConfigPath]
-      await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
+      await ctx.writeManifestJSON()
     },
     configureServer(server) {
-      if (watchedFiles && watchedFiles.length > 0) {
-        server.watcher.add(watchedFiles)
-      }
-
-      server.watcher.on('add', handleFileChange)
-      server.watcher.on('change', handleFileChange)
-      server.watcher.on('unlink', handleFileChange)
-
-      async function handleFileChange(file: string) {
-        if (!watchedFiles.includes(file)) {
-          return
-        }
-
-        await writeManifestJSON(root, resolvedManifestJSONPath, DEFAULT_MANIFEST_CONFIG)
-      }
+      ctx.setupViteServer(server)
     },
   }
 }

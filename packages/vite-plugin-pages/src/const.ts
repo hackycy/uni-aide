@@ -4,6 +4,8 @@ export const PAGE_CONFIG_FILE = 'pages.config'
 
 export const PAGE_JSON_FILE = 'pages.json'
 
+export const MODULE_ID_VIRTUAL = '~pages'
+
 /**
  * {@link https://github.com/dcloudio/uni-preset-vue/blob/vite-alpha/src/pages.json}
  */
