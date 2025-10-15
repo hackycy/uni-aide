@@ -1,7 +1,7 @@
 {
   "name": "@uni-aide/vite-plugin-manifest",
   "type": "module",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "@uni-aide/vite-plugin-manifest",
   "author": "hackycy",
   "license": "MIT",
