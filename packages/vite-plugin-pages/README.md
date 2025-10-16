@@ -15,11 +15,11 @@ pnpm add -D @uni-aide/vite-plugin-pages
 ``` ts
 // vite.config.ts
 import Uni from '@dcloudio/vite-plugin-uni'
-import UniManifest from '@uni-aide/vite-plugin-pages'
+import UniPages from '@uni-aide/vite-plugin-pages'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  plugins: [UniManifest(), Uni()],
+  plugins: [UniPages(), Uni()],
 })
 ```
 
