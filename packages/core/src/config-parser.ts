@@ -6,7 +6,7 @@ import { babelParse } from 'ast-kit'
 import MagicString from 'magic-string'
 import { loadConfig } from 'unconfig'
 
-const AVAILABLE_CONFIG_EXTENSIONS = ['ts', 'mts', 'js', 'mjs']
+const AVAILABLE_CONFIG_EXTENSIONS = ['ts', 'mts', 'cts', 'js', 'mjs', 'cjs']
 const COMMENT_SYMBOL_PREFIX = '__uni_aide_comment__'
 
 export interface ParseOptions {

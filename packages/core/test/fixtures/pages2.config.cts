@@ -14,7 +14,11 @@ function dynamicPages(render: boolean) {
   }
 }
 
-module.exports = {
+// eslint-disable-next-line ts/ban-ts-comment
+// @ts-expect-error
+const fn = arg => arg
+
+module.exports = fn({
   pages: [
     {
       path: 'pages/index/index',
@@ -54,4 +58,4 @@ module.exports = {
       '^wd-(.*)': 'wot-design-uni/components/wd-$1/wd-$1.vue',
     },
   },
-}
+})
