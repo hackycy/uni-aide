@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-manifest.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-manifest)
 
-使用 TypeScript 来编写 uni-app 的 manifest.json
+使用 TypeScript / JavaScript 来编写 uni-app 的 manifest.json
 
 ## 安装
 
@@ -23,7 +23,7 @@ export default defineConfig({
 })
 ```
 
-创建manifest.config.(ts|mts|js|mjs|cjs), 然后用 TypeScript 编写你的 manifest.json
+创建manifest.config.(ts|mts|js|mjs|cjs)
 
 ``` ts
 import { defineConfig } from '@uni-aide/vite-plugin-manifest'
