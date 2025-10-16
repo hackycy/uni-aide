@@ -23,7 +23,7 @@ export default defineConfig({
 })
 ```
 
-创建manifest.config.(ts|mts|js|mjs), 然后用 TypeScript 编写你的 manifest.json
+创建manifest.config.(ts|mts|js|mjs|cjs), 然后用 TypeScript 编写你的 manifest.json
 
 ``` ts
 import { defineConfig } from '@uni-aide/vite-plugin-manifest'
