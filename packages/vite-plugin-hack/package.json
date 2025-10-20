@@ -1,0 +1,36 @@
+{
+  "name": "@uni-aide/vite-plugin-hack",
+  "type": "module",
+  "version": "0.2.5",
+  "description": "@uni-aide/vite-plugin-hack",
+  "author": "hackycy",
+  "license": "MIT",
+  "homepage": "https://github.com/hackycy/uni-aide#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hackycy/uni-aide.git"
+  },
+  "bugs": "https://github.com/hackycy/uni-aide/issues",
+  "keywords": [],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepublishOnly": "nr build"
+  },
+  "peerDependencies": {
+    "vite": "^4.0.0 || ^5.0.0 || ^6.0.0"
+  },
+  "devDependencies": {
+    "vite": "catalog:"
+  }
+}
