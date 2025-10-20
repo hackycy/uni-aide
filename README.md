@@ -10,7 +10,7 @@
 | [@uni-aide/types](./packages/types) | [![npm version](https://img.shields.io/npm/v/@uni-aide/types.svg)](https://www.npmjs.com/package/@uni-aide/types) |
 | [@uni-aide/vite-plugin-manifest](./packages/vite-plugin-manifest) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-manifest.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-manifest) |
 | [@uni-aide/vite-plugin-pages](./packages/vite-plugin-pages) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-pages.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-pages) |
-| [@uni-aide/vite-plugin-hack](./packages/vite-plugin-hack) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-hack.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-hack) |
+| [@uni-aide/vite-plugin-mock-component](./packages/vite-plugin-mock-component) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-mock-component.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-mock-component) |
 
 ## 致谢
 

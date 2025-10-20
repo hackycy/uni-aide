@@ -1,8 +1,8 @@
 {
-  "name": "@uni-aide/vite-plugin-hack",
+  "name": "@uni-aide/vite-plugin-mock-component",
   "type": "module",
   "version": "0.2.5",
-  "description": "@uni-aide/vite-plugin-hack",
+  "description": "@uni-aide/vite-plugin-mock-component",
   "author": "hackycy",
   "license": "MIT",
   "homepage": "https://github.com/hackycy/uni-aide#readme",
