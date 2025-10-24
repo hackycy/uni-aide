@@ -11,7 +11,11 @@ function dynamicPages(render: boolean) {
       path: 'pages/index/index',
       // #endif
       q: refresh() // 1
-        ? 'yes'
+        ? {
+            // #ifdef H5
+            enablePullDownRefresh: false,
+            // #endif
+          }
         : 'no',
     }
   }
