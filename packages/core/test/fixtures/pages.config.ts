@@ -6,10 +6,13 @@ const refresh = () => true
 function dynamicPages(render: boolean) {
   if (render) {
     return {
-      // 不支持该写法
+      // 支持该写法
       // #ifdef MP-WEIXIN
       path: 'pages/index/index',
       // #endif
+      q: refresh() // 1
+        ? 'yes'
+        : 'no',
     }
   }
 }

@@ -1,4 +1,5 @@
 import type * as t from '@babel/types'
+import { isObject } from './utils'
 
 /**
  * 查找注释所属的节点，只查找CommentLine类型的注释
@@ -29,11 +30,15 @@ export function findCommentBelongsToNode(
     }
 
     // 检查注释是否在当前节点的范围内
+    // 只需要检查注释的起始位置是否在节点范围内即可
+    const commentLine = comment.loc!.start.line
+    const commentColumn = comment.loc!.start.column
+
     const isCommentInNode
-      = comment.loc!.start.line >= node.loc.start.line
-        && comment.loc!.end.line <= node.loc.end.line
-        && comment.loc!.start.column >= node.loc.start.column
-        && comment.loc!.end.column <= node.loc.end.column
+      = commentLine >= node.loc.start.line
+        && commentLine <= node.loc.end.line
+        && (commentLine > node.loc.start.line || commentColumn >= node.loc.start.column)
+        && (commentLine < node.loc.end.line || commentColumn <= node.loc.end.column)
 
     if (isCommentInNode) {
       // 计算节点范围，找到最小的（最内层的）节点
@@ -73,12 +78,12 @@ export function findCommentBelongsToNode(
 
       if (Array.isArray(value)) {
         value.forEach((item) => {
-          if (item && typeof item === 'object' && item.type) {
+          if (isObject(item) && item.type) {
             traverse(item)
           }
         })
       }
-      else if (value && typeof value === 'object' && value.type) {
+      else if (isObject(value) && value.type) {
         traverse(value)
       }
     }
@@ -88,4 +93,21 @@ export function findCommentBelongsToNode(
   ast.body.forEach(node => traverse(node))
 
   return foundNode
+}
+
+/**
+ * 获取属性的键名
+ */
+export function getPropertyKey(
+  prop: t.ObjectProperty | t.ObjectMethod,
+): string | null {
+  if (prop.key.type === 'Identifier') {
+    // 普通标识符，如: { name: 'value' }
+    return prop.key.name
+  }
+  if (prop.key.type === 'StringLiteral') {
+    // 字符串字面量，如: { 'my-key': 'value' }
+    return prop.key.value
+  }
+  return null
 }
