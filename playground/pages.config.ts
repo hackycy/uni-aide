@@ -2,6 +2,17 @@ import { defineConfig } from '@uni-aide/vite-plugin-pages'
 
 const title = 'UNI_APP'
 
+const OUT_SIDE_PAGES: any = [
+  {
+    // #ifdef MP-ALIPAY
+    path: 'pages/about/about',
+    style: {
+      navigationBarTitleText: 'About Page',
+    },
+    // #endif
+  },
+]
+
 export default defineConfig({
   pages: [
     {
@@ -17,6 +28,7 @@ export default defineConfig({
         // #endif
       },
     },
+    ...OUT_SIDE_PAGES,
   ],
   globalStyle: {
     navigationBarTextStyle: 'black',
