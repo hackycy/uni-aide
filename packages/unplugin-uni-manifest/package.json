@@ -1,0 +1,55 @@
+{
+  "name": "@uni-aide/unplugin-uni-manifest",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "@uni-aide/unplugin-uni-manifest",
+  "author": "hackycy",
+  "license": "MIT",
+  "homepage": "https://github.com/hackycy/uni-aide#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hackycy/uni-aide.git"
+  },
+  "bugs": "https://github.com/hackycy/uni-aide/issues",
+  "keywords": [],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./vite": "./dist/vite.js",
+    "./webpack": "./dist/webpack.js",
+    "./api": "./dist/api.js",
+    "./*": "./*"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./*"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint --cache .",
+    "lint:fix": "pnpm run lint --fix",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@uni-aide/core": "workspace:^",
+    "@uni-aide/types": "workspace:^",
+    "unplugin": "catalog:",
+    "unplugin-utils": "catalog:"
+  },
+  "devDependencies": {
+    "vite": "catalog:"
+  }
+}
