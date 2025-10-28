@@ -16,11 +16,6 @@ export interface ParseOptions {
    * @default process.cwd()
    */
   cwd?: string
-
-  /**
-   * 默认配置对象
-   */
-  defaults?: any
 }
 
 /**
@@ -30,7 +25,7 @@ export interface ParseOptions {
 export async function parse(name: string, options: ParseOptions = {}) {
   const cwd = options.cwd || process.cwd()
 
-  const preprocessJson = await loadConfigFile(name, cwd, options.defaults)
+  const preprocessJson = await loadConfigFile(name, cwd)
 
   const resultCode = `export default ${preprocessJson}`
   // 将预处理后的 JSON 代码再解析一遍，转换注释标记为注释
@@ -75,11 +70,7 @@ export async function parse(name: string, options: ParseOptions = {}) {
 /**
  * 加载转换注释后的配置文件JSON字符串，用于二次处理
  */
-export async function loadConfigFile(
-  name: string,
-  cwd: string,
-  defaults?: any,
-) {
+export async function loadConfigFile(name: string, cwd: string) {
   // 查找配置文件
   const configPath = findConfigFile(cwd, name)
 
@@ -114,7 +105,6 @@ export async function loadConfigFile(
       },
     ],
     cwd,
-    defaults,
   })
 
   // 删除临时文件
