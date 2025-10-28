@@ -1,22 +1,25 @@
-import type { FilterPattern } from 'unplugin-utils'
+import type { Options, ResolvedOptions } from '../types'
+import path from 'node:path'
+import { MANIFEST_JSON_FILE } from './constants'
 
-export interface Options {
-  include?: FilterPattern
-  exclude?: FilterPattern
-  enforce?: 'pre' | 'post' | undefined
+export const defaultOptions: Required<Options> = {
+  outDir: 'src',
 }
 
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U
+export function resolveOptions(rawOptions: Options, root: string): ResolvedOptions {
+  const resolved = Object.assign({}, defaultOptions, rawOptions) as ResolvedOptions
 
-export type OptionsResolved = Overwrite<
-  Required<Options>,
-  Pick<Options, 'enforce'>
->
-
-export function resolveOptions(options: Options): OptionsResolved {
-  return {
-    include: options.include || [/\.[cm]?[jt]sx?$/],
-    exclude: options.exclude || [/node_modules/],
-    enforce: 'enforce' in options ? options.enforce : 'pre',
+  // 解析 outputJsonPath
+  if (path.isAbsolute(resolved.outDir)) {
+    resolved.outputJsonPath = resolved.outDir
   }
+  else {
+    resolved.outputJsonPath = path.join(
+      root,
+      typeof resolved.outDir === 'string' ? resolved.outDir : 'src',
+      MANIFEST_JSON_FILE,
+    )
+  }
+
+  return resolved
 }

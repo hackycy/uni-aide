@@ -4,12 +4,12 @@ const title = 'UNI_APP'
 
 const OUT_SIDE_PAGES: any = [
   {
-    // #ifdef MP-ALIPAY
     path: 'pages/about/about',
     style: {
+      // #ifdef MP-ALIPAY
       navigationBarTitleText: 'About Page',
+      // #endif
     },
-    // #endif
   },
 ]
 

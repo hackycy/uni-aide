@@ -1,13 +1,14 @@
-import { defineConfig } from '@uni-aide/vite-plugin-manifest'
+import { defineConfig } from '@uni-aide/unplugin-uni-manifest'
 
 export default defineConfig({
-  'name': 'UNI_APP',
+  'name': 'Uni Playground',
   'appid': '',
   'description': '',
   'versionName': '1.0.0',
   'versionCode': '100',
   'transformPx': false,
   'app-plus': {
+    // 5+App特有相关
     usingComponents: true,
     nvueStyleCompiler: 'uni-app',
     compilerVersion: 3,

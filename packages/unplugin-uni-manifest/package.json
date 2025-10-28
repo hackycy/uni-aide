@@ -11,16 +11,32 @@
     "url": "git+https://github.com/hackycy/uni-aide.git"
   },
   "bugs": "https://github.com/hackycy/uni-aide/issues",
-  "keywords": [],
+  "keywords": ["uniapp"],
   "sideEffects": false,
   "exports": {
-    ".": "./dist/index.js",
-    "./vite": "./dist/vite.js",
-    "./webpack": "./dist/webpack.js",
-    "./api": "./dist/api.js",
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./vite": {
+      "import": "./dist/vite.js",
+      "require": "./dist/vite.cjs"
+    },
+    "./webpack": {
+      "import": "./dist/webpack.js",
+      "require": "./dist/webpack.cjs"
+    },
+    "./types": {
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "require": "./dist/api.cjs"
+    },
     "./*": "./*"
   },
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "typesVersions": {
@@ -43,13 +59,34 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
+  "peerDependencies": {
+    "@nuxt/kit": "^3",
+    "@nuxt/schema": "^3",
+    "vite": ">=3",
+    "webpack": "^4 || ^5"
+  },
+  "peerDependenciesMeta": {
+    "@nuxt/kit": {
+      "optional": true
+    },
+    "@nuxt/schema": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@uni-aide/core": "workspace:^",
     "@uni-aide/types": "workspace:^",
-    "unplugin": "catalog:",
-    "unplugin-utils": "catalog:"
+    "chokidar": "catalog:",
+    "unplugin": "catalog:"
   },
   "devDependencies": {
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "webpack": "catalog:"
   }
 }

@@ -1,7 +1,5 @@
-import UniManifest from '@uni-aide/vite-plugin-manifest'
+import UniManifest from '@uni-aide/unplugin-uni-manifest/vite'
 import UniPages from '@uni-aide/vite-plugin-pages'
-// eslint-disable-next-line ts/ban-ts-comment
-// @ts-ignore
 import Uni from '@uni-helper/plugin-uni'
 import { defineConfig } from 'vite'
 

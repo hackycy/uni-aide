@@ -61,7 +61,7 @@
     "@dcloudio/uni-cli-shared": "3.0.0-4070620250821001",
     "@dcloudio/uni-stacktracey": "3.0.0-4070620250821001",
     "@dcloudio/vite-plugin-uni": "3.0.0-4070620250821001",
-    "@uni-aide/vite-plugin-manifest": "workspace:^",
+    "@uni-aide/unplugin-uni-manifest": "workspace:^",
     "@uni-aide/vite-plugin-pages": "workspace:^",
     "@uni-helper/plugin-uni": "^0.1.0",
     "@vue/runtime-core": "^3.4.21",
