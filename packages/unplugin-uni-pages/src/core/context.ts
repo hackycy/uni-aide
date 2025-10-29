@@ -1,3 +1,4 @@
+import type { FSWatcher } from 'chokidar'
 import type { Options, ResolvedOptions } from '../types'
 import fs from 'node:fs'
 import process from 'node:process'
@@ -10,6 +11,8 @@ import { resolveOptions } from './options'
 export class Context {
   options: ResolvedOptions
   root: string = process.cwd()
+
+  private watcher: FSWatcher | null = null
 
   constructor(private rawOptions: Options) {
     this.options = resolveOptions(this.rawOptions, this.root)
@@ -30,15 +33,22 @@ export class Context {
       return
     }
 
-    const watcher = chokidar.watch(sourceConfigPath)
+    this.watcher = chokidar.watch(sourceConfigPath)
 
     const handleFileChange = async () => {
       await this.writePagesJSON()
     }
 
-    watcher.on('change', handleFileChange)
-    watcher.on('add', handleFileChange)
-    watcher.on('unlink', handleFileChange)
+    this.watcher.on('change', handleFileChange)
+    this.watcher.on('add', handleFileChange)
+    this.watcher.on('unlink', handleFileChange)
+  }
+
+  async close() {
+    if (this.watcher) {
+      await this.watcher.close()
+      this.watcher = null
+    }
   }
 
   async writePagesJSON() {
@@ -48,6 +58,7 @@ export class Context {
       })
 
       await fs.promises.writeFile(this.options.outputJsonPath, jsonc, { encoding: 'utf-8' })
+      console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} has been updated.`)
     }
     catch {
       // ignore

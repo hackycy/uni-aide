@@ -8,8 +8,6 @@
 | ------- | ------- |
 | [@uni-aide/core](./packages/core) | [![npm version](https://img.shields.io/npm/v/@uni-aide/core.svg)](https://www.npmjs.com/package/@uni-aide/core) |
 | [@uni-aide/types](./packages/types) | [![npm version](https://img.shields.io/npm/v/@uni-aide/types.svg)](https://www.npmjs.com/package/@uni-aide/types) |
-| [@uni-aide/vite-plugin-manifest](./packages/vite-plugin-manifest) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-manifest.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-manifest) |
-| [@uni-aide/vite-plugin-pages](./packages/vite-plugin-pages) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-pages.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-pages) |
 | [@uni-aide/vite-plugin-mock-component](./packages/vite-plugin-mock-component) | [![npm version](https://img.shields.io/npm/v/@uni-aide/vite-plugin-mock-component.svg)](https://www.npmjs.com/package/@uni-aide/vite-plugin-mock-component) |
 | [@uni-aide/unplugin-uni-manifest](./packages/unplugin-uni-manifest) | [![npm version](https://img.shields.io/npm/v/@uni-aide/unplugin-uni-manifest.svg)](https://www.npmjs.com/package/@uni-aide/unplugin-uni-manifest) |
 | [@uni-aide/unplugin-uni-pages](./packages/unplugin-uni-pages) | [![npm version](https://img.shields.io/npm/v/@uni-aide/unplugin-uni-pages.svg)](https://www.npmjs.com/package/@uni-aide/unplugin-uni-pages) |

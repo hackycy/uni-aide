@@ -16,13 +16,19 @@ export const unpluginFactory: UnpluginFactory<Options | undefined> = (
         ctx.setRoot(config.root)
         ctx.writeManifestJSON()
 
-        ctx.setupWatcher()
+        // Setup watcher in dev mode or build watch mode
+        if (config.command === 'serve' || config.build.watch) {
+          ctx.setupWatcher()
+        }
       },
     },
-    webpack() {
+    webpack(compiler) {
       ctx.writeManifestJSON()
 
-      ctx.setupWatcher()
+      // Only setup watcher in watch mode (development)
+      if (compiler.options.watch) {
+        ctx.setupWatcher()
+      }
     },
   }
 }
