@@ -23,6 +23,19 @@ export default defineConfig({
 })
 ```
 
+``` js
+// vue.config.js
+module.exports = {
+  configureWebpack: {
+    plugins: [
+      require('@uni-aide/unplugin-uni-manifest/webpack')({ /* options */ }),
+    ],
+  },
+}
+```
+
+> 注意非cli项目输出路径及配置路径均需配置且需要为绝对路径
+
 创建manifest.config.(ts|mts|js|mjs|cjs)
 
 ``` ts

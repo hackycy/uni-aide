@@ -23,13 +23,30 @@ export default defineConfig({
 })
 ```
 
+``` js
+// vue.config.js
+module.exports = {
+  configureWebpack: {
+    plugins: [
+      require('@uni-aide/unplugin-uni-pages/webpack')({ /* options */ }),
+    ],
+  },
+}
+```
+
+> 注意非cli项目输出路径及配置路径均需配置且需要为绝对路径
+
 创建pages.config.(ts|mts|js|mjs|cjs)
 
 ``` ts
 import { defineConfig } from '@uni-aide/unplugin-uni-pages'
 
 export default defineConfig({
-  // config here
+  pages: [],
+  globalStyle: {
+    navigationBarTextStyle: 'black',
+    navigationBarTitleText: '@uni-aide',
+  },
 })
 ```
 
