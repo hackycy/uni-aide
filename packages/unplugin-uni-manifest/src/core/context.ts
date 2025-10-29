@@ -32,14 +32,15 @@ export class Context {
       return
     }
 
-    this.watcher = chokidar.watch(sourceConfigPath)
+    this.watcher = chokidar.watch(sourceConfigPath, {
+      ignoreInitial: true, // Don't fire events for initial add
+    })
 
     const handleFileChange = async () => {
       await this.writeManifestJSON()
     }
 
     this.watcher.on('change', handleFileChange)
-    this.watcher.on('add', handleFileChange)
     this.watcher.on('unlink', handleFileChange)
   }
 
