@@ -28,7 +28,7 @@ export class Context {
   }
 
   setupWatcher() {
-    const sourceConfigPath = findConfigFile(this.root, PAGES_CONFIG_FILE)
+    const sourceConfigPath = findConfigFile(this.options.configSource, PAGES_CONFIG_FILE)
     if (!sourceConfigPath) {
       return
     }
@@ -55,11 +55,11 @@ export class Context {
   async writePagesJSON() {
     try {
       const jsonc = await parse(PAGES_CONFIG_FILE, {
-        cwd: this.root,
+        cwd: this.options.configSource,
       })
 
       await fs.promises.writeFile(this.options.outputJsonPath, jsonc, { encoding: 'utf-8' })
-      console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} has been updated.`)
+      console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`)
     }
     catch {
       // ignore

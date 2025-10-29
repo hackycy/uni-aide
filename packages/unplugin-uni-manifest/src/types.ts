@@ -4,6 +4,11 @@ export interface Options {
    * @default "src"
    */
   outDir?: string
+
+  /**
+   * 配置文件路径
+   */
+  configSource?: string
 }
 
 export type ResolvedOptions = Required<Options> & {

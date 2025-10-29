@@ -27,7 +27,7 @@ export class Context {
   }
 
   setupWatcher() {
-    const sourceConfigPath = findConfigFile(this.root, MANIFEST_CONFIG_FILE)
+    const sourceConfigPath = findConfigFile(this.options.configSource, MANIFEST_CONFIG_FILE)
     if (!sourceConfigPath) {
       return
     }
@@ -54,11 +54,11 @@ export class Context {
   async writeManifestJSON() {
     try {
       const jsonc = await parse(MANIFEST_CONFIG_FILE, {
-        cwd: this.root,
+        cwd: this.options.configSource,
       })
 
       await fs.promises.writeFile(this.options.outputJsonPath, jsonc, { encoding: 'utf-8' })
-      console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} has been updated.`)
+      console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)
     }
     catch {
       // ignore
