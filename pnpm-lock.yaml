@@ -179,36 +179,7 @@ importers:
         specifier: 'catalog:'
         version: 5.102.1
 
-  packages/vite-plugin-manifest:
-    dependencies:
-      '@uni-aide/core':
-        specifier: workspace:^
-        version: link:../core
-      '@uni-aide/types':
-        specifier: workspace:^
-        version: link:../types
-    devDependencies:
-      vite:
-        specifier: 'catalog:'
-        version: 6.1.0(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
-
   packages/vite-plugin-mock-component:
-    devDependencies:
-      vite:
-        specifier: 'catalog:'
-        version: 6.1.0(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
-
-  packages/vite-plugin-pages:
-    dependencies:
-      '@uni-aide/core':
-        specifier: workspace:^
-        version: link:../core
-      '@uni-aide/types':
-        specifier: workspace:^
-        version: link:../types
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
     devDependencies:
       vite:
         specifier: 'catalog:'
