@@ -4,6 +4,8 @@
 
 使用 TypeScript / JavaScript 来编写 uni-app 的 manifest.json
 
+> 已废弃，请迁移至[@uni-aide/unplugin-uni-manifest](../unplugin-uni-manifest)
+
 ## 安装
 
 ``` bash

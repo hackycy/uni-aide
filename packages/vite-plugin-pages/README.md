@@ -4,6 +4,8 @@
 
 使用 TypeScript / JavaScript 来编写 uni-app 的 pages.json
 
+> 已废弃，请迁移至[@uni-aide/unplugin-uni-pages](../unplugin-uni-pages)
+
 ## 安装
 
 ``` bash
@@ -40,6 +42,7 @@ export default defineConfig({
 /// <reference types="@uni-aide/vite-plugin-pages/client" />
 
 import { pages, subPackages } from '~uni-pages'
+
 console.log(pages, subPackages)
 ```
 
