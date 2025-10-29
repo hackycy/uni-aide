@@ -16,6 +16,7 @@ catalog:
   chokidar: ^4.0.3
   eslint: ^9.20.1
   floating-vue: ^5.2.2
+  jsonc-parser: ^3.3.0
   lint-staged: ^15.4.3
   pinia: ^3.0.1
   simple-git-hooks: ^2.11.1

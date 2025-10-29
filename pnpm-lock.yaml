@@ -27,6 +27,9 @@ catalogs:
     eslint:
       specifier: ^9.20.1
       version: 9.38.0
+    jsonc-parser:
+      specifier: ^3.3.0
+      version: 3.3.1
     lint-staged:
       specifier: ^15.4.3
       version: 15.5.2
@@ -134,6 +137,34 @@ importers:
       chokidar:
         specifier: 'catalog:'
         version: 4.0.3
+      unplugin:
+        specifier: 'catalog:'
+        version: 2.3.10
+      vue:
+        specifier: 2 || 3
+        version: 3.5.22(typescript@5.9.3)
+    devDependencies:
+      vite:
+        specifier: 'catalog:'
+        version: 6.1.0(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+      webpack:
+        specifier: 'catalog:'
+        version: 5.102.1
+
+  packages/unplugin-uni-pages:
+    dependencies:
+      '@uni-aide/core':
+        specifier: workspace:^
+        version: link:../core
+      '@uni-aide/types':
+        specifier: workspace:^
+        version: link:../types
+      chokidar:
+        specifier: 'catalog:'
+        version: 4.0.3
+      jsonc-parser:
+        specifier: 'catalog:'
+        version: 3.3.1
       unplugin:
         specifier: 'catalog:'
         version: 2.3.10
@@ -258,9 +289,9 @@ importers:
       '@uni-aide/unplugin-uni-manifest':
         specifier: workspace:^
         version: link:../packages/unplugin-uni-manifest
-      '@uni-aide/vite-plugin-pages':
+      '@uni-aide/unplugin-uni-pages':
         specifier: workspace:^
-        version: link:../packages/vite-plugin-pages
+        version: link:../packages/unplugin-uni-pages
       '@uni-helper/plugin-uni':
         specifier: ^0.1.0
         version: 0.1.0(@dcloudio/vite-plugin-uni@3.0.0-4070620250821001(@nuxt/kit@3.20.0)(postcss@8.5.6)(rollup@4.52.5)(vite@6.1.0(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3)))

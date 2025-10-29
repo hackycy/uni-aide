@@ -1,0 +1,82 @@
+{
+  "name": "@uni-aide/unplugin-uni-pages",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "@uni-aide/unplugin-uni-pages",
+  "author": "hackycy",
+  "license": "MIT",
+  "homepage": "https://github.com/hackycy/uni-aide#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hackycy/uni-aide.git"
+  },
+  "bugs": "https://github.com/hackycy/uni-aide/issues",
+  "keywords": [
+    "uniapp"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./vite": {
+      "import": "./dist/vite.js",
+      "require": "./dist/vite.cjs"
+    },
+    "./webpack": {
+      "import": "./dist/webpack.js",
+      "require": "./dist/webpack.cjs"
+    },
+    "./types": {
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "require": "./dist/api.cjs"
+    },
+    "./client": {
+      "types": "./client.d.ts"
+    },
+    "./*": "./*"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./*"
+      ]
+    }
+  },
+  "files": [
+    "client.d.ts",
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint --cache .",
+    "lint:fix": "pnpm run lint --fix",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "vue": "2 || 3"
+  },
+  "dependencies": {
+    "@uni-aide/core": "workspace:^",
+    "@uni-aide/types": "workspace:^",
+    "chokidar": "catalog:",
+    "jsonc-parser": "catalog:",
+    "unplugin": "catalog:"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "webpack": "catalog:"
+  }
+}
