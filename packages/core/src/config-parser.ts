@@ -2,10 +2,9 @@ import type * as t from '@babel/types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { babelParse } from 'ast-kit'
 import MagicString from 'magic-string'
 import { loadConfig } from 'unconfig'
-import { findCommentBelongsToNode, getPropertyKey } from './ast'
+import { babelParse, findCommentBelongsToNode, getPropertyKey } from './ast'
 
 const AVAILABLE_CONFIG_EXTENSIONS = ['ts', 'mts', 'cts', 'js', 'mjs', 'cjs']
 const COMMENT_SYMBOL_PREFIX = '__uni_aide_comment__'
@@ -32,7 +31,6 @@ export async function parse(name: string, options: ParseOptions = {}) {
   const ast = babelParse(resultCode, 'js', {
     attachComment: true,
     sourceType: 'module',
-    cache: false,
   })
 
   const s = new MagicString(resultCode)
@@ -208,7 +206,6 @@ export async function transformComments(source: string) {
   const ast = babelParse(code, 'ts', {
     attachComment: true,
     sourceType: 'module',
-    cache: false,
   })
 
   const s = new MagicString(code)

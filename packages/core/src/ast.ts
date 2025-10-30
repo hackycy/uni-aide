@@ -1,5 +1,10 @@
+import type { ParseResult, ParserOptions, ParserPlugin } from '@babel/parser'
 import type * as t from '@babel/types'
+import { parse } from '@babel/parser'
 import { isObject } from './utils'
+
+export const REGEX_LANG_TS: RegExp = /^[cm]?tsx?$/
+export const REGEX_LANG_JSX: RegExp = /^[cm]?[jt]sx$/
 
 /**
  * 查找注释所属的节点，只查找CommentLine类型的注释
@@ -110,4 +115,82 @@ export function getPropertyKey(
     return prop.key.value
   }
   return null
+}
+
+/**
+ * @link https://github.com/sxzz/ast-kit/blob/f876734fea0dc8bfa53d7e24fd372fa77aa93189/src/parse.ts#L78
+ */
+export function babelParse(code: string, lang?: string, options: ParserOptions = {}): t.Program & Omit<ParseResult<t.File>, 'type' | 'program'> {
+  const result: ParseResult<t.File> | undefined = parse(code, getBabelParserOptions(lang, options))
+
+  // oxlint-disable-next-line no-unused-vars
+  const { program, type, ...rest } = result
+  return { ...program, ...rest }
+}
+
+/**
+ * Gets the Babel parser options for the given language.
+ * @param lang - The language of the code (optional).
+ * @param options - The parser options (optional).
+ * @returns The Babel parser options for the given language.
+ */
+export function getBabelParserOptions(
+  lang?: string,
+  options: ParserOptions = {},
+): ParserOptions {
+  const plugins: ParserPlugin[] = [...(options.plugins || [])]
+  if (isTs(lang)) {
+    if (!hasPlugin(plugins, 'typescript')) {
+      plugins.push(
+        lang === 'dts' ? ['typescript', { dts: true }] : 'typescript',
+      )
+    }
+
+    if (
+      !hasPlugin(plugins, 'decorators')
+      && !hasPlugin(plugins, 'decorators-legacy')
+    ) {
+      plugins.push('decorators-legacy')
+    }
+
+    if (
+      !hasPlugin(plugins, 'importAttributes')
+      && !hasPlugin(plugins, 'importAssertions')
+      && !hasPlugin(plugins, 'deprecatedImportAssert')
+    ) {
+      plugins.push('importAttributes', 'deprecatedImportAssert')
+    }
+
+    if (!hasPlugin(plugins, 'explicitResourceManagement')) {
+      plugins.push('explicitResourceManagement')
+    }
+
+    if (REGEX_LANG_JSX.test(lang!) && !hasPlugin(plugins, 'jsx')) {
+      plugins.push('jsx')
+    }
+  }
+  else if (!hasPlugin(plugins, 'jsx')) {
+    plugins.push('jsx')
+  }
+  return {
+    sourceType: 'module',
+    ...options,
+    plugins,
+  }
+}
+
+function hasPlugin(
+  plugins: ParserPlugin[],
+  plugin: Exclude<ParserPlugin, any[]>,
+) {
+  return plugins.some(p => (Array.isArray(p) ? p[0] : p) === plugin)
+}
+
+/**
+ * Checks if the given language (ts, mts, cjs, dts, tsx...) is TypeScript.
+ * @param lang - The language to check.
+ * @returns A boolean indicating whether the language is TypeScript.
+ */
+export function isTs(lang?: string): boolean {
+  return !!lang && (lang === 'dts' || REGEX_LANG_TS.test(lang))
 }
