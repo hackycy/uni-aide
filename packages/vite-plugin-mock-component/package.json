@@ -1,7 +1,7 @@
 {
   "name": "@uni-aide/vite-plugin-mock-component",
   "type": "module",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "@uni-aide/vite-plugin-mock-component",
   "author": "hackycy",
   "license": "MIT",
