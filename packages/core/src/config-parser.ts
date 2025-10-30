@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import MagicString from 'magic-string'
-import { loadConfig } from 'unconfig'
 import { babelParse, findCommentBelongsToNode, getPropertyKey } from './ast'
 
 const AVAILABLE_CONFIG_EXTENSIONS = ['ts', 'mts', 'cts', 'js', 'mjs', 'cjs']
@@ -94,7 +93,8 @@ export async function loadConfigFile(name: string, cwd: string) {
     'utf-8',
   )
 
-  // 加载临时文件
+  // 加载临时文件（使用动态导入以支持 CommonJS）
+  const { loadConfig } = await import('unconfig')
   const { config } = await loadConfig({
     sources: [
       {
