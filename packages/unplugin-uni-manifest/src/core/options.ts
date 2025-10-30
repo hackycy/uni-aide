@@ -10,8 +10,8 @@ export function resolveOptions(rawOptions: Options, root: string): ResolvedOptio
   const resolved = Object.assign({}, defaultOptions, rawOptions) as ResolvedOptions
 
   // 解析 outputJsonPath
-  if (path.isAbsolute(resolved.outDir)) {
-    resolved.outputJsonPath = resolved.outDir
+  if (resolved.outDir && path.isAbsolute(resolved.outDir)) {
+    resolved.outputJsonPath = path.join(resolved.outDir, MANIFEST_JSON_FILE)
   }
   else {
     resolved.outputJsonPath = path.join(

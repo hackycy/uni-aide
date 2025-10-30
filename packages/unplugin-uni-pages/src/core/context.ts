@@ -61,8 +61,9 @@ export class Context {
       await fs.promises.writeFile(this.options.outputJsonPath, jsonc, { encoding: 'utf-8' })
       console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`)
     }
-    catch {
-      // ignore
+    catch (error) {
+      console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} generation failed.`)
+      console.error(error instanceof Error ? error.message : `${error}`)
     }
   }
 
