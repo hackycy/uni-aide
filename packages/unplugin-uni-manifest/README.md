@@ -19,7 +19,7 @@ import UniManifest from '@uni-aide/unplugin-uni-manifest/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  plugins: [UniManifest(), Uni()],
+  plugins: [UniManifest({}), Uni()],
 })
 ```
 
@@ -28,7 +28,10 @@ export default defineConfig({
 module.exports = {
   configureWebpack: {
     plugins: [
-      require('@uni-aide/unplugin-uni-manifest/webpack')({ /* options */ }),
+      require('@uni-aide/unplugin-uni-manifest/webpack')({
+        outDir: __dirname,
+        configSource: __dirname,
+      }),
     ],
   },
 }

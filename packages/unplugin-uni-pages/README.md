@@ -28,7 +28,10 @@ export default defineConfig({
 module.exports = {
   configureWebpack: {
     plugins: [
-      require('@uni-aide/unplugin-uni-pages/webpack')({ /* options */ }),
+      require('@uni-aide/unplugin-uni-pages/webpack')({
+        outDir: __dirname,
+        configSource: __dirname,
+      }),
     ],
   },
 }
