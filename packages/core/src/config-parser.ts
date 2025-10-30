@@ -95,20 +95,24 @@ export async function loadConfigFile(name: string, cwd: string) {
 
   // 加载临时文件（使用动态导入以支持 CommonJS）
   const { loadConfig } = await import('unconfig')
-  const { config } = await loadConfig({
-    sources: [
-      {
-        files: tempFilename,
-        extensions: AVAILABLE_CONFIG_EXTENSIONS,
-      },
-    ],
-    cwd,
-  })
 
-  // 删除临时文件
-  fs.promises.rm(tempFilePath).catch(() => {})
+  try {
+    const { config } = await loadConfig({
+      sources: [
+        {
+          files: tempFilename,
+          extensions: AVAILABLE_CONFIG_EXTENSIONS,
+        },
+      ],
+      cwd,
+    })
 
-  return JSON.stringify(config, null, 2)
+    return JSON.stringify(config, null, 2)
+  }
+  finally {
+    // 删除临时文件
+    fs.promises.rm(tempFilePath).catch(() => {})
+  }
 }
 
 /**
