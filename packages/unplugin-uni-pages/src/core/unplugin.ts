@@ -25,7 +25,7 @@ export const unpluginFactory: UnpluginFactory<Options | undefined> = (
     vite: {
       async configResolved(config) {
         ctx.setRoot(config.root)
-        ctx.writePagesJSON()
+        await ctx.writePagesJSON()
 
         // Setup watcher in dev mode or build watch mode
         if (config.command === 'serve' || config.build.watch) {
