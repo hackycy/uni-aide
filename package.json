@@ -18,7 +18,8 @@
     "play:h5": "pnpm -C playground dev:h5",
     "play:build:h5": "pnpm -C playground build:h5",
     "play:mp": "pnpm -C playground dev:mp-weixin",
-    "play:build:mp": "pnpm -C playground build:mp-weixin"
+    "play:build:mp": "pnpm -C playground build:mp-weixin",
+    "open:packages": "npx open-packages-on-npm"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
