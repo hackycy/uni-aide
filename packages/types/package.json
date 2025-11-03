@@ -15,27 +15,27 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./manifest": {
-      "types": "./dist/manifest/index.d.mts",
-      "import": "./dist/manifest/index.mjs"
+      "types": "./dist/manifest/index.d.ts",
+      "import": "./dist/manifest/index.js"
     },
     "./pages": {
-      "types": "./dist/pages/index.d.mts",
-      "import": "./dist/pages/index.mjs"
+      "types": "./dist/pages/index.d.ts",
+      "import": "./dist/pages/index.js"
     }
   },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "unbuild",
-    "dev": "unbuild --stub",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "prepublishOnly": "nr build"
   }
 }
