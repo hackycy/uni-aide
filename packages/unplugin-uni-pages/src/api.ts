@@ -1,4 +1,4 @@
-import type { UserPagesConfig } from '@uni-aide/types/pages'
+import type { UserPagesConfig } from '.'
 import fs from 'node:fs'
 import { DEFAULT_PAGES_CONFIG } from './core/constants'
 

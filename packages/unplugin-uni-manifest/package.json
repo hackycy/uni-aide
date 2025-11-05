@@ -64,7 +64,6 @@
   },
   "dependencies": {
     "@uni-aide/core": "workspace:^",
-    "@uni-aide/types": "workspace:^",
     "chokidar": "catalog:",
     "unplugin": "catalog:"
   },

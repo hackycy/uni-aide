@@ -118,16 +118,11 @@ importers:
         specifier: ^7.28.4
         version: 7.28.5
 
-  packages/types: {}
-
   packages/unplugin-uni-manifest:
     dependencies:
       '@uni-aide/core':
         specifier: workspace:^
         version: link:../core
-      '@uni-aide/types':
-        specifier: workspace:^
-        version: link:../types
       chokidar:
         specifier: 'catalog:'
         version: 4.0.3
@@ -150,9 +145,6 @@ importers:
       '@uni-aide/core':
         specifier: workspace:^
         version: link:../core
-      '@uni-aide/types':
-        specifier: workspace:^
-        version: link:../types
       chokidar:
         specifier: 'catalog:'
         version: 4.0.3

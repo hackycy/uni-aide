@@ -1,4 +1,4 @@
-import type { UserManifestConfig } from '@uni-aide/types/manifest'
+import type { UserManifestConfig } from '.'
 import fs from 'node:fs'
 import { DEFAULT_MANIFEST_CONFIG } from './core/constants'
 

@@ -70,7 +70,6 @@
   },
   "dependencies": {
     "@uni-aide/core": "workspace:^",
-    "@uni-aide/types": "workspace:^",
     "chokidar": "catalog:",
     "jsonc-parser": "catalog:",
     "unplugin": "catalog:"
