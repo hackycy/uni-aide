@@ -1,4 +1,4 @@
-import type { UserManifestConfig } from '@uni-aide/types/manifest'
+import type { UserManifestConfig } from '../config'
 
 export const MANIFEST_CONFIG_FILE = 'manifest.config'
 
@@ -38,6 +38,14 @@ export const DEFAULT_MANIFEST_CONFIG: UserManifestConfig = {
       /* SDK配置 */
       sdkConfigs: {},
     },
+  },
+  /* HarmonyOS特有相关 */
+  'app-harmony': {
+    distribute: {},
+  },
+  /* HarmonyOS元服务特有相关 */
+  'mp-harmony': {
+    distribute: {},
   },
   /* 快应用特有相关 */
   'quickapp': {},
