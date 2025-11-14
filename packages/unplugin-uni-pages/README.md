@@ -65,3 +65,8 @@ console.log(pages, subPackages)
 ```
 
 > 快速迁移：只需将`pages.json`对象拷贝至`defineConfig`参数内格式化即可，插件会重新输出带有**注释**的`pages.json`
+
+## 致谢
+
+本项目的部分代码也源自或复制自以下项目:
+- [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages)

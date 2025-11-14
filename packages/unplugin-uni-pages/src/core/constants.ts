@@ -1,4 +1,4 @@
-import type { UserPagesConfig } from '@uni-aide/types/pages'
+import type { UserPagesConfig } from '../config'
 
 export const PAGES_CONFIG_FILE = 'pages.config'
 
