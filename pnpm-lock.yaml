@@ -107,6 +107,9 @@ importers:
       '@babel/parser':
         specifier: ^7.28.5
         version: 7.28.5
+      ast-kit:
+        specifier: ^2.2.0
+        version: 2.2.0
       magic-string:
         specifier: ^0.30.19
         version: 0.30.21
@@ -2606,6 +2609,10 @@ packages:
 
   ast-kit@2.1.3:
     resolution: {integrity: sha512-TH+b3Lv6pUjy/Nu0m6A2JULtdzLpmqF9x1Dhj00ZoEiML8qvVA9j1flkzTKNYgdEhWrjDwtWNpyyCUbfQe514g==}
+    engines: {node: '>=20.19.0'}
+
+  ast-kit@2.2.0:
+    resolution: {integrity: sha512-m1Q/RaVOnTp9JxPX+F+Zn7IcLYMzM8kZofDImfsKZd8MbR+ikdOzTeztStWqfrqIxZnYWryyI9ePm3NGjnZgGw==}
     engines: {node: '>=20.19.0'}
 
   asynckit@0.4.0:
@@ -8786,6 +8793,11 @@ snapshots:
   assertion-error@2.0.1: {}
 
   ast-kit@2.1.3:
+    dependencies:
+      '@babel/parser': 7.28.5
+      pathe: 2.0.3
+
+  ast-kit@2.2.0:
     dependencies:
       '@babel/parser': 7.28.5
       pathe: 2.0.3
