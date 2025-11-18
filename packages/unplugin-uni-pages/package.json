@@ -70,8 +70,10 @@
   },
   "dependencies": {
     "@uni-aide/core": "workspace:^",
+    "@vue/compiler-sfc": "^3.5.22",
     "chokidar": "catalog:",
     "jsonc-parser": "catalog:",
+    "tinyglobby": "^0.2.15",
     "unplugin": "catalog:"
   },
   "devDependencies": {

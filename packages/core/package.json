@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "ast-kit": "^2.2.0",
+    "comment-json": "^4.4.1",
     "magic-string": "^0.30.19",
     "unconfig": "^7.3.3"
   },

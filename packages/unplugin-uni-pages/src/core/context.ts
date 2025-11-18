@@ -2,15 +2,29 @@ import type { FSWatcher } from 'chokidar'
 import type { Options, ResolvedOptions } from '../types'
 import fs from 'node:fs'
 import process from 'node:process'
-import { findConfigFile, parse } from '@uni-aide/core'
+import { findConfigFile, jsoncParse, parse } from '@uni-aide/core'
 import chokidar from 'chokidar'
-import { parse as jsoncParse } from 'jsonc-parser'
 import { PAGES_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
+
+interface ScanPageAttribute {
+  lang?: 'jsonc' | 'json' | 'json5'
+  type?: 'page' | 'subPackage' | 'tabBar'
+  // home path
+  entry?: boolean
+  // subPackage root path
+  root?: string
+  content?: Record<string, any>
+}
 
 export class Context {
   options: ResolvedOptions
   root: string = process.cwd()
+
+  // scan pages
+  scanPages: Map<string, ScanPageAttribute> = new Map()
+  scanSubPackages: Map<string, ScanPageAttribute> = new Map()
+  scanTabBar: Map<string, ScanPageAttribute> = new Map()
 
   private watcher: FSWatcher | null = null
 
@@ -72,7 +86,7 @@ export class Context {
     let routes: string = '[]'
     let subRoutes: string = '[]'
     try {
-      const pages: Record<string, any> = jsoncParse(pagesStr)
+      const pages = jsoncParse(pagesStr) as Record<string, any>
       routes = JSON.stringify(pages.pages || [], null, 2)
       subRoutes = JSON.stringify(pages.subPackages || [], null, 2)
     }
