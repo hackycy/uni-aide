@@ -33,7 +33,6 @@
     "test": "vitest --reporter=verbose"
   },
   "dependencies": {
-    "@babel/parser": "^7.28.5",
     "ast-kit": "^2.2.0",
     "magic-string": "^0.30.19",
     "unconfig": "^7.3.3"

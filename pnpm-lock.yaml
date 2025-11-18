@@ -104,9 +104,6 @@ importers:
 
   packages/core:
     dependencies:
-      '@babel/parser':
-        specifier: ^7.28.5
-        version: 7.28.5
       ast-kit:
         specifier: ^2.2.0
         version: 2.2.0

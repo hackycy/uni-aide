@@ -27,7 +27,7 @@ export async function parse(name: string, options: ParseOptions = {}) {
 
   const resultCode = `export default ${preprocessJson}`
   // 将预处理后的 JSON 代码再解析一遍，转换注释标记为注释
-  const ast = babelParse(resultCode, 'js', {
+  const ast = await babelParse(resultCode, 'js', {
     attachComment: true,
     sourceType: 'module',
   })
@@ -207,7 +207,7 @@ export function reverseComments(node: t.Node, s: MagicString) {
  */
 export async function transformComments(source: string) {
   const code = await fs.promises.readFile(source, 'utf-8')
-  const ast = babelParse(code, 'ts', {
+  const ast = await babelParse(code, 'ts', {
     attachComment: true,
     sourceType: 'module',
   })

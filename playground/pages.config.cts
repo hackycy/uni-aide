@@ -1,4 +1,5 @@
-import { defineConfig } from '@uni-aide/unplugin-uni-pages'
+// eslint-disable-next-line ts/no-require-imports
+const { defineConfig } = require('@uni-aide/unplugin-uni-pages')
 
 const title = 'UNI_APP'
 
@@ -13,7 +14,7 @@ const OUT_SIDE_PAGES: any = [
   },
 ]
 
-export default defineConfig({
+module.exports = defineConfig({
   pages: [
     {
       path: 'pages/index/index',
