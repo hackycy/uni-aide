@@ -27,9 +27,6 @@ catalogs:
     eslint:
       specifier: ^9.20.1
       version: 9.38.0
-    jsonc-parser:
-      specifier: ^3.3.0
-      version: 3.3.1
     lint-staged:
       specifier: ^15.4.3
       version: 15.5.2
@@ -149,14 +146,11 @@ importers:
         specifier: workspace:^
         version: link:../core
       '@vue/compiler-sfc':
-        specifier: ^3.5.22
+        specifier: ^3.4.21
         version: 3.5.22
       chokidar:
         specifier: 'catalog:'
         version: 4.0.3
-      jsonc-parser:
-        specifier: 'catalog:'
-        version: 3.3.1
       tinyglobby:
         specifier: ^0.2.15
         version: 0.2.15

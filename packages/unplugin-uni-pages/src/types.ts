@@ -1,9 +1,16 @@
 export interface Options {
   /**
-   * 扫描页面的目录
-   * @default undefined
+   * 扫描页面的目录，设置空则不扫描
+   *
+   * @example ['src/pages', 'src/sub-packages']
+   * @default []
    */
   scanDir?: string[]
+
+  /**
+   * 扫描时排除的目录或文件 (glob patterns)
+   */
+  exclude?: string[]
 
   /**
    * 输出 pages.json 目录
@@ -19,4 +26,14 @@ export interface Options {
 
 export type ResolvedOptions = Required<Options> & {
   outputJsonPath: string
+}
+
+export interface ScanPageRouteBlock {
+  lang?: 'jsonc' | 'json' | 'json5'
+  type?: 'page' | 'subPackage' | 'tabBar'
+  // home path
+  entry?: boolean
+  // subPackage root path
+  root?: string
+  content?: Record<string, any>
 }

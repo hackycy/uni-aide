@@ -42,3 +42,11 @@ console.log('pages', pages)
   color: #8f8f94;
 }
 </style>
+
+<route lang="json" entry>
+{
+  "style": {
+    "navigationBarTitleText": "About Page"
+  }
+}
+</route>

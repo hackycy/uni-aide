@@ -2,7 +2,7 @@ import type { FSWatcher } from 'chokidar'
 import type { Options, ResolvedOptions } from '../types'
 import fs from 'node:fs'
 import process from 'node:process'
-import { findConfigFile, parse } from '@uni-aide/core'
+import { findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
 import chokidar from 'chokidar'
 import { MANIFEST_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
@@ -57,7 +57,7 @@ export class Context {
         cwd: this.options.configSource,
       })
 
-      await fs.promises.writeFile(this.options.outputJsonPath, jsonc, { encoding: 'utf-8' })
+      await fs.promises.writeFile(this.options.outputJsonPath, jsoncStringify(jsoncParse(jsonc), null, 2), { encoding: 'utf-8' })
       console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)
     }
     catch (error) {

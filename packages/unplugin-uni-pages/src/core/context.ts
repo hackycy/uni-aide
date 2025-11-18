@@ -1,30 +1,23 @@
 import type { FSWatcher } from 'chokidar'
-import type { Options, ResolvedOptions } from '../types'
+import type { Options, ResolvedOptions, ScanPageRouteBlock } from '../types'
 import fs from 'node:fs'
+import path from 'node:path'
 import process from 'node:process'
-import { findConfigFile, jsoncParse, parse } from '@uni-aide/core'
+import { findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
 import chokidar from 'chokidar'
-import { PAGES_CONFIG_FILE } from './constants'
+import { globSync } from 'tinyglobby'
+import { FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
-
-interface ScanPageAttribute {
-  lang?: 'jsonc' | 'json' | 'json5'
-  type?: 'page' | 'subPackage' | 'tabBar'
-  // home path
-  entry?: boolean
-  // subPackage root path
-  root?: string
-  content?: Record<string, any>
-}
+import { extsToGlob, getRouteSfcBlock, parseCustomBlock, parseSFC, slash } from './utils'
 
 export class Context {
   options: ResolvedOptions
   root: string = process.cwd()
 
   // scan pages
-  scanPages: Map<string, ScanPageAttribute> = new Map()
-  scanSubPackages: Map<string, ScanPageAttribute> = new Map()
-  scanTabBar: Map<string, ScanPageAttribute> = new Map()
+  scanPages: Map<string, ScanPageRouteBlock> = new Map()
+  scanSubPackages: Map<string, ScanPageRouteBlock> = new Map()
+  scanTabBar: Map<string, ScanPageRouteBlock> = new Map()
 
   private watcher: FSWatcher | null = null
 
@@ -72,7 +65,9 @@ export class Context {
         cwd: this.options.configSource,
       })
 
-      await fs.promises.writeFile(this.options.outputJsonPath, jsonc, { encoding: 'utf-8' })
+      await this.scan()
+
+      await fs.promises.writeFile(this.options.outputJsonPath, jsoncStringify(jsoncParse(jsonc), null, 2), { encoding: 'utf-8' })
       console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`)
     }
     catch (error) {
@@ -87,8 +82,8 @@ export class Context {
     let subRoutes: string = '[]'
     try {
       const pages = jsoncParse(pagesStr) as Record<string, any>
-      routes = JSON.stringify(pages.pages || [], null, 2)
-      subRoutes = JSON.stringify(pages.subPackages || [], null, 2)
+      routes = jsoncStringify(pages.pages || [], null, 2)
+      subRoutes = jsoncStringify(pages.subPackages || [], null, 2)
     }
     catch {
       // ignore
@@ -97,5 +92,46 @@ export class Context {
     const pages = `export const pages = ${routes};`
     const subPackages = `export const subPackages = ${subRoutes};`
     return [pages, subPackages].join('\n')
+  }
+
+  async scan() {
+    // reset
+    this.scanPages.clear()
+    this.scanSubPackages.clear()
+    this.scanTabBar.clear()
+
+    if (!this.options.scanDir || this.options.scanDir.length === 0) {
+      return
+    }
+
+    const scanFiles: string[] = []
+    const ext = `**/*.${extsToGlob(FILE_EXTENSIONS)}`
+    this.options.scanDir.forEach((dir) => {
+      const files = globSync(ext, {
+        cwd: dir,
+        ignore: this.options.exclude,
+        absolute: true,
+        onlyFiles: true,
+      })
+      scanFiles.push(...files)
+    })
+
+    try {
+      for (const file of scanFiles) {
+        const code = await fs.promises.readFile(file, { encoding: 'utf-8' })
+        const sfc = parseSFC(code, { filename: file })
+        const routeBlock = getRouteSfcBlock(sfc)
+        if (routeBlock) {
+          parseCustomBlock(routeBlock)
+        }
+      }
+    }
+    catch (error) {
+      console.error(error)
+    }
+
+    const paths = scanFiles.map(file => slash(path.relative(process.env.UNI_INPUT_DIR!, file)))
+    console.log('[unplugin-uni-pages] Scanning pages in directories:', scanFiles)
+    console.log('[unplugin-uni-pages] Resolved paths:', paths)
   }
 }

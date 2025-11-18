@@ -4,10 +4,19 @@ import { PAGES_JSON_FILE } from './constants'
 
 export const defaultOptions: Required<Omit<Options, 'configSource'>> = {
   outDir: 'src',
+  exclude: [],
+  scanDir: [],
 }
 
-export function resolveOptions(rawOptions: Options, root: string): ResolvedOptions {
-  const resolved = Object.assign({}, defaultOptions, rawOptions) as ResolvedOptions
+export function resolveOptions(
+  rawOptions: Options,
+  root: string,
+): ResolvedOptions {
+  const resolved = Object.assign(
+    {},
+    defaultOptions,
+    rawOptions,
+  ) as ResolvedOptions
 
   // 解析 outputJsonPath
   if (resolved.outDir && path.isAbsolute(resolved.outDir)) {
@@ -29,6 +38,17 @@ export function resolveOptions(rawOptions: Options, root: string): ResolvedOptio
   }
   else {
     resolved.configSource = root
+  }
+
+  // 解析 scanDir
+  if (rawOptions.scanDir && rawOptions.scanDir.length > 0) {
+    resolved.scanDir = rawOptions.scanDir
+      .map((dir) => {
+        if (path.isAbsolute(dir)) {
+          return dir
+        }
+        return path.join(root, dir)
+      })
   }
 
   return resolved
