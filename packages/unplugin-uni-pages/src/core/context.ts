@@ -13,7 +13,7 @@ import {
 } from '@uni-aide/core'
 import chokidar from 'chokidar'
 import { globSync } from 'tinyglobby'
-import { FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
+import { DEFAULT_SEQ, FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
 import {
   extsToGlob,
@@ -170,8 +170,8 @@ export class Context {
         }).sort((a, b) => {
           const routeA = this.scanTabBarMap.get(a.pagePath)
           const routeB = this.scanTabBarMap.get(b.pagePath)
-          const seqA = routeA?.seq ?? 1
-          const seqB = routeB?.seq ?? 1
+          const seqA = routeA?.seq ?? DEFAULT_SEQ
+          const seqB = routeB?.seq ?? DEFAULT_SEQ
           return seqA - seqB
         })
       }

@@ -6,6 +6,8 @@ export const PAGES_JSON_FILE = 'pages.json'
 
 export const FILE_EXTENSIONS = ['vue', 'nvue', 'uvue']
 
+export const DEFAULT_SEQ = Number.MAX_SAFE_INTEGER
+
 /* https://cn.vite.dev/guide/api-plugin.html#virtual-modules-convention */
 export const VIRTUAL_MODULE_ID = '~uni-pages'
 export const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`
