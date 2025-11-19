@@ -20,7 +20,7 @@ const title = ref("Scan Demo");
 }
 </route>
 
-<route lang="json" part="tabBar">
+<route lang="json" part="tabBar" seq="0">
 {
   "iconPath": "static/home.png",
   "selectedIconPath": "static/home-selected.png",
