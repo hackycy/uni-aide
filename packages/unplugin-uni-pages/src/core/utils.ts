@@ -1,5 +1,6 @@
 import type { SFCBlock, SFCDescriptor, SFCParseOptions } from '@vue/compiler-sfc'
 import type { ScanPageRouteBlock } from '../types'
+import { jsoncParse } from '@uni-aide/core'
 import { parse as VueParser } from '@vue/compiler-sfc'
 
 export function parseSFC(code: string, options?: SFCParseOptions): SFCDescriptor {
@@ -25,13 +26,60 @@ export function slash(str: string) {
   return str.replace(/\\/g, '/')
 }
 
-export function getRouteSfcBlock(sfc?: SFCDescriptor): SFCBlock | undefined {
-  return sfc?.customBlocks.find(b => b.type === 'route')
+export function getRouteSfcBlock(sfc?: SFCDescriptor): SFCBlock[] | undefined {
+  return sfc?.customBlocks.filter(b => b.type === 'route')
 }
 
-export function parseCustomBlock(block: SFCBlock): ScanPageRouteBlock | null {
-  console.log('[unplugin-uni-pages] Found route block in', block.attrs)
-  return null
+export function parseSeq(seq: any): number {
+  const n = Number(seq)
+  return Number.isNaN(n) ? 0 : n
+}
+
+/**
+ * Define a non-writable and non-configurable property on an object
+ */
+export function forbiddenOverwritePagePath(obj: Record<string, any>, key: 'path' | 'pagePath', value: string) {
+  Object.defineProperty(obj, key, {
+    value,
+    writable: false,
+    configurable: false,
+    enumerable: true,
+  })
+  return obj
+}
+
+export function parseCustomBlock(block: SFCBlock, filePath: string): ScanPageRouteBlock | null {
+  if (!block) {
+    return null
+  }
+
+  const lang: ScanPageRouteBlock['lang'] = (block.lang ?? 'json') as ScanPageRouteBlock['lang']
+  let content: Record<string, any> | undefined
+
+  if (lang === 'json') {
+    try {
+      content = JSON.parse(block.content) as Record<string, any>
+    }
+    catch (err: any) {
+      throw new Error(`Invalid JSON format of <${block.type}> content in ${filePath}\n${err.message}`)
+    }
+  }
+  else if (lang === 'jsonc' || lang === 'json5') {
+    try {
+      content = jsoncParse(block.content) as Record<string, any>
+    }
+    catch (err: any) {
+      throw new Error(`Invalid ${lang.toUpperCase()} format of <${block.type}> content in ${filePath}\n${err.message}`)
+    }
+  }
+
+  return {
+    lang,
+    part: `${block.attrs?.part ?? 'page'}` as ScanPageRouteBlock['part'],
+    seq: parseSeq(block.attrs?.seq),
+    root: `${block.attrs?.root || ''}` || undefined,
+    content: content || {},
+  }
 }
 
 export function extsToGlob(extensions: string[]) {

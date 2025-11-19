@@ -30,9 +30,9 @@ export type ResolvedOptions = Required<Options> & {
 
 export interface ScanPageRouteBlock {
   lang?: 'jsonc' | 'json' | 'json5'
-  type?: 'page' | 'subPackage' | 'tabBar'
-  // home path
-  entry?: boolean
+  part?: 'page' | 'subPackage' | 'tabBar'
+  // order (0..n)
+  seq?: number
   // subPackage root path
   root?: string
   content?: Record<string, any>

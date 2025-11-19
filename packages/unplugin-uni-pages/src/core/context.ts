@@ -1,23 +1,42 @@
 import type { FSWatcher } from 'chokidar'
+import type { PagesConfig } from '..'
 import type { Options, ResolvedOptions, ScanPageRouteBlock } from '../types'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
+import {
+  findConfigFile,
+  jsoncAssign,
+  jsoncParse,
+  jsoncStringify,
+  parse,
+} from '@uni-aide/core'
 import chokidar from 'chokidar'
 import { globSync } from 'tinyglobby'
 import { FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
-import { extsToGlob, getRouteSfcBlock, parseCustomBlock, parseSFC, slash } from './utils'
+import {
+  extsToGlob,
+  forbiddenOverwritePagePath,
+  getRouteSfcBlock,
+  parseCustomBlock,
+  parseSFC,
+  slash,
+} from './utils'
 
 export class Context {
   options: ResolvedOptions
   root: string = process.cwd()
 
   // scan pages
-  scanPages: Map<string, ScanPageRouteBlock> = new Map()
-  scanSubPackages: Map<string, ScanPageRouteBlock> = new Map()
-  scanTabBar: Map<string, ScanPageRouteBlock> = new Map()
+  scanPagesMap: Map<string, ScanPageRouteBlock & { handled?: boolean }>
+    = new Map()
+
+  scanSubPackagesMap: Map<string, ScanPageRouteBlock & { handled?: boolean }>
+    = new Map()
+
+  scanTabBarMap: Map<string, ScanPageRouteBlock & { handled?: boolean }>
+    = new Map()
 
   private watcher: FSWatcher | null = null
 
@@ -35,7 +54,10 @@ export class Context {
   }
 
   setupWatcher() {
-    const sourceConfigPath = findConfigFile(this.options.configSource, PAGES_CONFIG_FILE)
+    const sourceConfigPath = findConfigFile(
+      this.options.configSource,
+      PAGES_CONFIG_FILE,
+    )
     if (!sourceConfigPath) {
       return
     }
@@ -65,19 +87,155 @@ export class Context {
         cwd: this.options.configSource,
       })
 
+      // 扫描页面
       await this.scan()
 
-      await fs.promises.writeFile(this.options.outputJsonPath, jsoncStringify(jsoncParse(jsonc), null, 2), { encoding: 'utf-8' })
-      console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`)
+      // 合并扫描结果
+      const pageMeta = jsoncParse(jsonc) as PagesConfig
+      if (!pageMeta.pages) {
+        pageMeta.pages = []
+      }
+
+      if (this.scanPagesMap.size > 0) {
+        // 合并同样路径的页面配置，配置文件优先级高会覆盖扫描到的配置
+        pageMeta.pages.forEach((page) => {
+          const route = this.scanPagesMap.get(page.path)
+          if (route) {
+            jsoncAssign(page, route.content)
+            this.markAsHandledPage(page.path, route)
+          }
+        })
+
+        // 添加剩余未处理的扫描页面
+        for (const [routePath, route] of this.scanPagesMap) {
+          if (route.handled) {
+            continue
+          }
+
+          pageMeta.pages.push(
+            jsoncAssign(
+              forbiddenOverwritePagePath({}, 'path', routePath),
+              route.content,
+            ) as any,
+          )
+          this.markAsHandledPage(routePath, route)
+        }
+      }
+
+      if (this.scanTabBarMap.size > 0) {
+        if (!pageMeta.tabBar) {
+          pageMeta.tabBar = {}
+
+          if (!pageMeta.tabBar.list) {
+            pageMeta.tabBar.list = []
+          }
+        }
+
+        // 合并同样路径的 tabBar 配置，配置文件优先级高会覆盖扫描到的配置
+        pageMeta.tabBar.list!.forEach((tabBarItem) => {
+          const route = this.scanTabBarMap.get(tabBarItem.pagePath)
+          if (route) {
+            jsoncAssign(
+              forbiddenOverwritePagePath(
+                tabBarItem,
+                'pagePath',
+                tabBarItem.pagePath,
+              ),
+              route.content,
+            )
+            this.markAsHandledPage(tabBarItem.pagePath, route)
+          }
+        })
+
+        for (const [routePath, route] of this.scanTabBarMap) {
+          if (route.handled) {
+            continue
+          }
+
+          pageMeta.tabBar.list!.push(
+            jsoncAssign(
+              forbiddenOverwritePagePath({}, 'pagePath', routePath),
+              route.content,
+            ) as any,
+          )
+          this.markAsHandledPage(routePath, route)
+        }
+
+        // 处理排序 先根据路径字符串排序，再根据 seq 排序
+        pageMeta.tabBar
+          .list!.sort((a, b) => {
+          const pageA = a.pagePath
+          const pageB = b.pagePath
+          return pageA.localeCompare(pageB)
+        }).sort((a, b) => {
+          const routeA = this.scanTabBarMap.get(a.pagePath)
+          const routeB = this.scanTabBarMap.get(b.pagePath)
+          const seqA = routeA?.seq ?? 1
+          const seqB = routeB?.seq ?? 1
+          return seqA - seqB
+        })
+      }
+
+      // 处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
+      pageMeta.pages
+        .sort((a, b) => {
+          const pageA = a.path
+          const pageB = b.path
+          return pageA.localeCompare(pageB)
+        })
+        .sort((a, b) => {
+          const tabBarA = pageMeta.tabBar?.list?.find(
+            item => item.pagePath === a.path,
+          )
+          const tabBarB = pageMeta.tabBar?.list?.find(
+            item => item.pagePath === b.path,
+          )
+          if (tabBarA && tabBarB) {
+            // 如果都在 tabBar 中，则根据 tabBar 的顺序排序
+            return (
+              pageMeta.tabBar!.list!.indexOf(tabBarA)
+              - pageMeta.tabBar!.list!.indexOf(tabBarB)
+            )
+          }
+          else if (tabBarA) {
+            // 如果只有 A 在 tabBar 中，则 A 优先
+            return -1
+          }
+          else if (tabBarB) {
+            // 如果只有 B 在 tabBar 中，则 B 优先
+            return 1
+          }
+          else {
+            // 如果都不在 tabBar 中，则根据 seq 排序
+            const routeA = this.scanPagesMap.get(a.path)
+            const routeB = this.scanPagesMap.get(b.path)
+            const seqA = routeA?.seq ?? 1
+            const seqB = routeB?.seq ?? 1
+            return seqA - seqB
+          }
+        })
+
+      await fs.promises.writeFile(
+        this.options.outputJsonPath,
+        jsoncStringify(pageMeta, null, 2),
+        { encoding: 'utf-8' },
+      )
+      console.log(
+        `[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`,
+      )
     }
     catch (error) {
-      console.log(`[unplugin-uni-pages] ${this.options.outputJsonPath} generation failed.`)
+      console.log(
+        `[unplugin-uni-pages] ${this.options.outputJsonPath} generation failed.`,
+      )
       console.error(error instanceof Error ? error.message : `${error}`)
     }
   }
 
   async resolveVirtualModule() {
-    const pagesStr = await fs.promises.readFile(this.options.outputJsonPath, { encoding: 'utf-8' })
+    const pagesStr = await fs.promises.readFile(this.options.outputJsonPath, {
+      encoding: 'utf-8',
+    })
     let routes: string = '[]'
     let subRoutes: string = '[]'
     try {
@@ -96,9 +254,9 @@ export class Context {
 
   async scan() {
     // reset
-    this.scanPages.clear()
-    this.scanSubPackages.clear()
-    this.scanTabBar.clear()
+    this.scanPagesMap.clear()
+    this.scanSubPackagesMap.clear()
+    this.scanTabBarMap.clear()
 
     if (!this.options.scanDir || this.options.scanDir.length === 0) {
       return
@@ -116,22 +274,52 @@ export class Context {
       scanFiles.push(...files)
     })
 
-    try {
-      for (const file of scanFiles) {
+    for (const file of scanFiles) {
+      try {
         const code = await fs.promises.readFile(file, { encoding: 'utf-8' })
         const sfc = parseSFC(code, { filename: file })
-        const routeBlock = getRouteSfcBlock(sfc)
-        if (routeBlock) {
-          parseCustomBlock(routeBlock)
+        const routeBlocks = getRouteSfcBlock(sfc)?.map(
+          b => parseCustomBlock(b, file)!,
+        )
+        if (!routeBlocks || routeBlocks.length === 0) {
+          continue
+        }
+
+        // remove file extension and leading slash
+        const routePath = slash(
+          path.relative(process.env.UNI_INPUT_DIR!, file),
+        ).replace(new RegExp(`\\.(${FILE_EXTENSIONS.join('|')})$`), '')
+
+        for (const block of routeBlocks) {
+          if (block.part === 'page') {
+            this.scanPagesMap.set(routePath, block)
+          }
+          else if (block.part === 'subPackage') {
+            this.scanSubPackagesMap.set(routePath, block)
+          }
+          else if (block.part === 'tabBar') {
+            this.scanTabBarMap.set(routePath, block)
+          }
         }
       }
+      catch (err: any) {
+        console.error(`[unplugin-uni-pages] ${err.message}`)
+      }
     }
-    catch (error) {
-      console.error(error)
-    }
+  }
 
-    const paths = scanFiles.map(file => slash(path.relative(process.env.UNI_INPUT_DIR!, file)))
-    console.log('[unplugin-uni-pages] Scanning pages in directories:', scanFiles)
-    console.log('[unplugin-uni-pages] Resolved paths:', paths)
+  /**
+   * 标记已处理的页面
+   */
+  private markAsHandledPage(routePath: string, block: ScanPageRouteBlock) {
+    if (block.part === 'page') {
+      this.scanPagesMap.get(routePath)!.handled = true
+    }
+    else if (block.part === 'subPackage') {
+      this.scanSubPackagesMap.get(routePath)!.handled = true
+    }
+    else if (block.part === 'tabBar') {
+      this.scanTabBarMap.get(routePath)!.handled = true
+    }
   }
 }
