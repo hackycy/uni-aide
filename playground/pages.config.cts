@@ -37,4 +37,10 @@ module.exports = defineConfig({
     navigationBarBackgroundColor: '#F8F8F8',
     backgroundColor: '#F8F8F8',
   },
+  tabBar: {
+    color: '#cdcdcd',
+    selectedColor: '#8b5cf6',
+    borderStyle: 'white',
+    backgroundColor: '#ffffff',
+  },
 })

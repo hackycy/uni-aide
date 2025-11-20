@@ -30,9 +30,7 @@ export class Context {
 
   // scan pages
   scanPagesMap: Map<string, ScanPageRouteBlock> = new Map()
-
   scanSubPackagesMap: Map<string, ScanPageRouteBlock> = new Map()
-
   scanTabBarMap: Map<string, ScanPageRouteBlock> = new Map()
 
   private watcher: FSWatcher | null = null
@@ -121,12 +119,12 @@ export class Context {
       }
 
       if (this.scanTabBarMap.size > 0) {
+        // prevent tabBar or tabBar.list is undefined
         if (!pageMeta.tabBar) {
           pageMeta.tabBar = {}
-
-          if (!pageMeta.tabBar.list) {
-            pageMeta.tabBar.list = []
-          }
+        }
+        if (!pageMeta.tabBar.list) {
+          pageMeta.tabBar.list = []
         }
 
         const mergedTabBarPages = new Set<string>()
@@ -175,7 +173,12 @@ export class Context {
         })
       }
 
-      // 处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
+      // 处理分包页面扫描
+      if (this.scanSubPackagesMap.size > 0) {
+        // TODO
+      }
+
+      // 最后处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
       pageMeta.pages
         .sort((a, b) => {
           const pageA = a.path

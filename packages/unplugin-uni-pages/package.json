@@ -52,6 +52,9 @@
       ]
     }
   },
+  "bin": {
+    "uni-pages": "./bin/uni-pages.js"
+  },
   "files": [
     "client.d.ts",
     "dist"
