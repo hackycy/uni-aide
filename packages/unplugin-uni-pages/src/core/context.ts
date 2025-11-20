@@ -29,14 +29,11 @@ export class Context {
   root: string = process.cwd()
 
   // scan pages
-  scanPagesMap: Map<string, ScanPageRouteBlock & { handled?: boolean }>
-    = new Map()
+  scanPagesMap: Map<string, ScanPageRouteBlock> = new Map()
 
-  scanSubPackagesMap: Map<string, ScanPageRouteBlock & { handled?: boolean }>
-    = new Map()
+  scanSubPackagesMap: Map<string, ScanPageRouteBlock> = new Map()
 
-  scanTabBarMap: Map<string, ScanPageRouteBlock & { handled?: boolean }>
-    = new Map()
+  scanTabBarMap: Map<string, ScanPageRouteBlock> = new Map()
 
   private watcher: FSWatcher | null = null
 
@@ -97,18 +94,19 @@ export class Context {
       }
 
       if (this.scanPagesMap.size > 0) {
+        const mergedPages = new Set<string>()
         // 合并同样路径的页面配置，配置文件优先级高会覆盖扫描到的配置
         pageMeta.pages.forEach((page) => {
           const route = this.scanPagesMap.get(page.path)
           if (route) {
             jsoncAssign(page, route.content)
-            this.markAsHandledPage(page.path, route)
+            mergedPages.add(page.path)
           }
         })
 
         // 添加剩余未处理的扫描页面
         for (const [routePath, route] of this.scanPagesMap) {
-          if (route.handled) {
+          if (mergedPages.has(routePath)) {
             continue
           }
 
@@ -118,7 +116,7 @@ export class Context {
               route.content,
             ) as any,
           )
-          this.markAsHandledPage(routePath, route)
+          mergedPages.add(routePath)
         }
       }
 
@@ -131,6 +129,7 @@ export class Context {
           }
         }
 
+        const mergedTabBarPages = new Set<string>()
         // 合并同样路径的 tabBar 配置，配置文件优先级高会覆盖扫描到的配置
         pageMeta.tabBar.list!.forEach((tabBarItem) => {
           const route = this.scanTabBarMap.get(tabBarItem.pagePath)
@@ -143,12 +142,12 @@ export class Context {
               ),
               route.content,
             )
-            this.markAsHandledPage(tabBarItem.pagePath, route)
+            mergedTabBarPages.add(tabBarItem.pagePath)
           }
         })
 
         for (const [routePath, route] of this.scanTabBarMap) {
-          if (route.handled) {
+          if (mergedTabBarPages.has(routePath)) {
             continue
           }
 
@@ -158,7 +157,7 @@ export class Context {
               route.content,
             ) as any,
           )
-          this.markAsHandledPage(routePath, route)
+          mergedTabBarPages.add(routePath)
         }
 
         // 处理排序 先根据路径字符串排序，再根据 seq 排序
@@ -305,21 +304,6 @@ export class Context {
       catch (err: any) {
         console.error(`[unplugin-uni-pages] ${err.message}`)
       }
-    }
-  }
-
-  /**
-   * 标记已处理的页面
-   */
-  private markAsHandledPage(routePath: string, block: ScanPageRouteBlock) {
-    if (block.part === 'page') {
-      this.scanPagesMap.get(routePath)!.handled = true
-    }
-    else if (block.part === 'subPackage') {
-      this.scanSubPackagesMap.get(routePath)!.handled = true
-    }
-    else if (block.part === 'tabBar') {
-      this.scanTabBarMap.get(routePath)!.handled = true
     }
   }
 }
