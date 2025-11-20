@@ -1,2 +1,12 @@
+import MagicString from 'magic-string'
+
 export { findConfigFile, parse } from './config-parser'
-export { CommentArray, type CommentJSONValue, type CommentObject, assign as jsoncAssign, parse as jsoncParse, stringify as jsoncStringify } from 'comment-json'
+export {
+  CommentArray,
+  type CommentJSONValue,
+  type CommentObject,
+  assign as jsoncAssign,
+  parse as jsoncParse,
+  stringify as jsoncStringify,
+} from 'comment-json'
+export { MagicString }

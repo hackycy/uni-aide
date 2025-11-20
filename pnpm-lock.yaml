@@ -30,6 +30,9 @@ catalogs:
     lint-staged:
       specifier: ^15.4.3
       version: 15.5.2
+    magic-string:
+      specifier: ^0.30.19
+      version: 0.30.21
     simple-git-hooks:
       specifier: ^2.11.1
       version: 2.13.1
@@ -108,7 +111,7 @@ importers:
         specifier: ^4.4.1
         version: 4.4.1
       magic-string:
-        specifier: ^0.30.19
+        specifier: 'catalog:'
         version: 0.30.21
       unconfig:
         specifier: ^7.3.3
