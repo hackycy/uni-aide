@@ -9,21 +9,21 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-const title = ref("Scan Demo");
+const title = ref("User");
 </script>
 
 <route lang="json">
 {
   "style": {
-    "navigationBarTitleText": "Scan Demo Page"
+    "navigationBarTitleText": "User"
   }
 }
 </route>
 
-<route lang="json" part="tabBar" seq="0">
+<route lang="json" part="tabBar">
 {
-  "iconPath": "static/home.png",
-  "selectedIconPath": "static/home-selected.png",
-  "text": "首页"
+  "iconPath": "static/user.png",
+  "selectedIconPath": "static/user-selected.png",
+  "text": "我的"
 }
 </route>

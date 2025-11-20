@@ -175,7 +175,25 @@ export class Context {
 
       // 处理分包页面扫描
       if (this.scanSubPackagesMap.size > 0) {
-        // TODO
+        // prevent subPackages is undefined
+        if (!pageMeta.subPackages) {
+          pageMeta.subPackages = []
+        }
+
+        // const mergedSubPackagePages = new Set<string>()
+
+        const subPackageRootMap = new Map<string, [string, string]>()
+        // 处理分包页面，解析root路径
+        for (const [routePath, _] of this.scanSubPackagesMap) {
+          const segments = routePath.split('/')
+          if (segments.length > 1) {
+            // 最后一段作为页面路径，其余作为root路径
+            const root = segments.slice(0, -1).join('/')
+            const page = segments[segments.length - 1]
+            subPackageRootMap.set(routePath, [root, page])
+          }
+        }
+        console.log(Array.from(subPackageRootMap))
       }
 
       // 最后处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq

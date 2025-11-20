@@ -33,7 +33,5 @@ export interface ScanPageRouteBlock {
   part?: 'page' | 'subPackage' | 'tabBar'
   // order (0..n)
   seq?: number
-  // subPackage root path
-  root?: string
   content?: Record<string, any>
 }
