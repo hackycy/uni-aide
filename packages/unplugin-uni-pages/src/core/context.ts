@@ -1,5 +1,5 @@
 import type { FSWatcher } from 'chokidar'
-import type { PagesConfig } from '..'
+import type { PagesConfig, SubPackage } from '..'
 import type { Options, ResolvedOptions, ScanPageRouteBlock } from '../types'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -180,23 +180,167 @@ export class Context {
           pageMeta.subPackages = []
         }
 
-        // const mergedSubPackagePages = new Set<string>()
+        // 所有分包页面路径
+        const allSubPackagesPath = new Set<string>()
+        pageMeta.subPackages.forEach((subPackage) => {
+          if (
+            subPackage.root
+            && subPackage.pages
+            && subPackage.pages.length > 0
+          ) {
+            subPackage.pages.forEach((subPage) => {
+              allSubPackagesPath.add(`${subPackage.root}/${subPage.path}`)
+            })
+          }
+        })
+        this.scanSubPackagesMap.keys().forEach((routePath) => {
+          allSubPackagesPath.add(routePath)
+        })
 
-        const subPackageRootMap = new Map<string, [string, string]>()
-        // 处理分包页面，解析root路径
-        for (const [routePath, _] of this.scanSubPackagesMap) {
-          const segments = routePath.split('/')
-          if (segments.length > 1) {
-            // 最后一段作为页面路径，其余作为root路径
-            const root = segments.slice(0, -1).join('/')
-            const page = segments[segments.length - 1]
-            subPackageRootMap.set(routePath, [root, page])
+        // 排序路径数组：以便按顺序比较路径。
+        // 定义LCP函数：计算两个路径字符串的最长共同目录前缀（始终以 '/' 结尾）。
+        // 分组路径：迭代排序后的路径，根据LCP将路径分组到不同的根下。
+        // 处理每组：对于每个组，根路径是LCP去掉尾部斜杠，页面是路径去掉LCP后的部分。
+        // 处理边界情况：如路径无斜杠或空数组。
+
+        // ['pages/subpackage/comment', 'pages/subpackage/list/list', 'pages/subpackage/goods', 'pages/sub2/list']
+        // 转换
+        // {
+        //   'pages/sub2': ['list'],
+        //   'pages/subpackage': ['comment', 'goods', 'list/list']
+        // }
+        const sortedPaths = Array.from(allSubPackagesPath).sort()
+
+        // LCP函数：返回两个字符串的最长共同目录前缀（以'/'结尾）
+        function lcpPath(str1: string, str2: string) {
+          let i = 0
+          while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+            i++
+          }
+          const common = str1.substring(0, i)
+          const lastSlash = common.lastIndexOf('/')
+          if (lastSlash === -1) {
+            return '' // 无共同目录
+          }
+          else {
+            return common.substring(0, lastSlash + 1) // 返回至最后一个斜杠（包含）
           }
         }
-        console.log(Array.from(subPackageRootMap))
+
+        const parsedSubPackagesMap = new Map<string, string[]>()
+        let currentGroup: string[] = [sortedPaths[0]]
+
+        // 初始化当前LCP：第一个路径的目录部分（以'/'结尾）
+        let currentLCP: string = sortedPaths[0].includes('/')
+          ? sortedPaths[0].substring(0, sortedPaths[0].lastIndexOf('/') + 1)
+          : ''
+
+        for (let i = 1; i < sortedPaths.length; i++) {
+          const path = sortedPaths[i]
+          const newLCP = lcpPath(currentLCP, path)
+
+          if (newLCP === currentLCP) {
+            // 路径属于当前组
+            currentGroup.push(path)
+          }
+          else {
+            // 最终化当前组：添加根和页面到结果
+            const root = currentLCP.endsWith('/')
+              ? currentLCP.slice(0, -1)
+              : currentLCP
+
+            if (!parsedSubPackagesMap.has(root)) {
+              parsedSubPackagesMap.set(root, [])
+            }
+
+            for (const p of currentGroup) {
+              const page = p.substring(currentLCP.length)
+              parsedSubPackagesMap.get(root)!.push(page)
+            }
+
+            // 开始新的组
+            currentGroup = [path]
+            currentLCP = path.includes('/')
+              ? path.substring(0, path.lastIndexOf('/') + 1)
+              : ''
+          }
+        }
+
+        // 最终化最后一个组
+        const root = currentLCP.endsWith('/')
+          ? currentLCP.slice(0, -1)
+          : currentLCP
+        if (!parsedSubPackagesMap.has(root)) {
+          parsedSubPackagesMap.set(root, [])
+        }
+
+        for (const p of currentGroup) {
+          const page = p.substring(currentLCP.length)
+          parsedSubPackagesMap.get(root)!.push(page)
+        }
+
+        // 最终合并配置
+        parsedSubPackagesMap.entries().forEach(([root, paths]) => {
+          for (const path of paths) {
+            const fullPath = `${root}/${path}`
+            if (!this.scanSubPackagesMap.has(fullPath)) {
+              // 非扫描忽略
+              continue
+            }
+
+            const route = this.scanSubPackagesMap.get(fullPath)!
+
+            // 是否存在在配置中，有则需要合并
+            const rootIdx = pageMeta.subPackages!.findIndex(
+              packages => packages.root === root,
+            )
+            const pageIdx
+              = rootIdx === -1
+                ? -1
+                : pageMeta.subPackages![rootIdx].pages?.findIndex(
+                    p => p.path === path,
+                  )
+
+            if (rootIdx !== -1 && pageIdx !== -1) {
+              jsoncAssign(
+                forbiddenOverwritePagePath(
+                  pageMeta.subPackages![rootIdx].pages![pageIdx],
+                  'path',
+                  path,
+                ),
+                route.content,
+              )
+              continue
+            }
+
+            // 不存在于原有配置，则新增
+            let subPackageItem: SubPackage | undefined
+            if (rootIdx === -1) {
+              subPackageItem = {
+                root,
+                pages: [],
+              }
+              pageMeta.subPackages!.push(subPackageItem)
+            }
+            else {
+              subPackageItem = pageMeta.subPackages![rootIdx]
+            }
+
+            if (!subPackageItem.pages) {
+              subPackageItem.pages = []
+            }
+
+            subPackageItem.pages.push(
+              jsoncAssign(
+                forbiddenOverwritePagePath({}, 'path', path),
+                route.content,
+              ) as any,
+            )
+          }
+        })
       }
 
-      // 最后处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
+      // 处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
       pageMeta.pages
         .sort((a, b) => {
           const pageA = a.path
