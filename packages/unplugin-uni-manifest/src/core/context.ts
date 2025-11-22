@@ -77,7 +77,7 @@ export class Context {
       })
 
       await fs.promises.writeFile(this.options.outputJsonPath, jsoncStringify(jsoncParse(jsonc), null, 2), { encoding: 'utf-8' })
-      console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)
+      // console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)
     }
     catch (error) {
       console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generation failed.`)
