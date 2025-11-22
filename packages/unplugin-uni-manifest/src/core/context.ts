@@ -29,6 +29,11 @@ export class Context {
   setupWatcher() {
     const sourceConfigPath = findConfigFile(this.options.configSource, MANIFEST_CONFIG_FILE)
     if (!sourceConfigPath) {
+      this.stopWatcher()
+      return
+    }
+
+    if (this.watcher) {
       return
     }
 
@@ -44,11 +49,25 @@ export class Context {
     this.watcher.on('unlink', handleFileChange)
   }
 
-  async close() {
-    if (this.watcher) {
-      await this.watcher.close()
-      this.watcher = null
+  private async stopWatcher() {
+    if (!this.watcher) {
+      return
     }
+
+    const currentWatcher = this.watcher
+    this.watcher = null
+
+    try {
+      await currentWatcher.close()
+    }
+    catch (error) {
+      console.error('[unplugin-uni-manifest] failed to close watcher.')
+      console.error(error instanceof Error ? error.message : `${error}`)
+    }
+  }
+
+  async close() {
+    this.stopWatcher()
   }
 
   async writeManifestJSON() {
