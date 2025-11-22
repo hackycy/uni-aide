@@ -25,7 +25,16 @@ export interface Options {
 }
 
 export type ResolvedOptions = Required<Options> & {
+  /**
+   * 输出 pages.json 完整路径
+   */
   outputJsonPath: string
+
+  /**
+   * 项目代码目录
+   * @default process.env.UNI_INPUT_DIR
+   */
+  inputDir: string
 }
 
 export interface ScanPageRouteBlock {

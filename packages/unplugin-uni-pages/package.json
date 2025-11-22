@@ -74,11 +74,14 @@
   "dependencies": {
     "@uni-aide/core": "workspace:^",
     "@vue/compiler-sfc": "3.4.21",
+    "cac": "catalog:",
     "chokidar": "catalog:",
+    "proper-lockfile": "catalog:",
     "tinyglobby": "^0.2.15",
     "unplugin": "catalog:"
   },
   "devDependencies": {
+    "@types/proper-lockfile": "catalog:",
     "vite": "catalog:",
     "webpack": "catalog:"
   }

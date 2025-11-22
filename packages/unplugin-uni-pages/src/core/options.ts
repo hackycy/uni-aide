@@ -1,8 +1,9 @@
 import type { Options, ResolvedOptions } from '../types'
 import path from 'node:path'
+import process from 'node:process'
 import { PAGES_JSON_FILE } from './constants'
 
-export const defaultOptions: Required<Omit<Options, 'configSource'>> = {
+export const defaultOptions: Required<Omit<Options, 'configSource' | 'inputDir'>> = {
   outDir: 'src',
   exclude: [],
   scanDir: [],
@@ -50,6 +51,9 @@ export function resolveOptions(
         return path.join(root, dir)
       })
   }
+
+  // 解析 inputDir
+  resolved.inputDir = process.env.UNI_INPUT_DIR || path.join(root, 'src')
 
   return resolved
 }

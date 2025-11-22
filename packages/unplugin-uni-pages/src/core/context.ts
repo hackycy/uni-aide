@@ -12,6 +12,7 @@ import {
   parse,
 } from '@uni-aide/core'
 import chokidar from 'chokidar'
+import lockfile from 'proper-lockfile'
 import { globSync } from 'tinyglobby'
 import { DEFAULT_SEQ, FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
@@ -77,6 +78,20 @@ export class Context {
   }
 
   async writePagesJSON() {
+    // 使用 lockfile 防止并发写入
+    let release: (() => Promise<void>) | null = null
+
+    try {
+      release = await lockfile.lock(this.options.outputJsonPath, {
+        retries: 0,
+        stale: 5000,
+      })
+    }
+    catch {
+      // 获取锁失败，则视为被占用，直接返回
+      return
+    }
+
     try {
       const jsonc = await parse(PAGES_CONFIG_FILE, {
         cwd: this.options.configSource,
@@ -198,13 +213,13 @@ export class Context {
         })
 
         // 排序路径数组：以便按顺序比较路径。
-        // 定义LCP函数：计算两个路径字符串的最长共同目录前缀（始终以 '/' 结尾）。
+        // LCP函数：计算两个路径字符串的最长共同目录前缀（始终以 '/' 结尾）。
         // 分组路径：迭代排序后的路径，根据LCP将路径分组到不同的根下。
         // 处理每组：对于每个组，根路径是LCP去掉尾部斜杠，页面是路径去掉LCP后的部分。
         // 处理边界情况：如路径无斜杠或空数组。
 
         // ['pages/subpackage/comment', 'pages/subpackage/list/list', 'pages/subpackage/goods', 'pages/sub2/list']
-        // 转换
+        // 转换为
         // {
         //   'pages/sub2': ['list'],
         //   'pages/subpackage': ['comment', 'goods', 'list/list']
@@ -394,6 +409,11 @@ export class Context {
       )
       console.error(error instanceof Error ? error.message : `${error}`)
     }
+    finally {
+      if (release) {
+        await release()
+      }
+    }
   }
 
   async resolveVirtualModule() {
@@ -451,7 +471,7 @@ export class Context {
 
         // remove file extension and leading slash
         const routePath = slash(
-          path.relative(process.env.UNI_INPUT_DIR!, file),
+          path.relative(this.options.inputDir, file),
         ).replace(new RegExp(`\\.(${FILE_EXTENSIONS.join('|')})$`), '')
 
         for (const block of routeBlocks) {

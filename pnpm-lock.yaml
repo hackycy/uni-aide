@@ -18,9 +18,15 @@ catalogs:
     '@types/node':
       specifier: ^22.13.4
       version: 22.18.12
+    '@types/proper-lockfile':
+      specifier: ^4.1.4
+      version: 4.1.4
     bumpp:
       specifier: ^10.0.3
       version: 10.3.1
+    cac:
+      specifier: ^6.7.14
+      version: 6.7.14
     chokidar:
       specifier: ^4.0.3
       version: 4.0.3
@@ -33,6 +39,9 @@ catalogs:
     magic-string:
       specifier: ^0.30.19
       version: 0.30.21
+    proper-lockfile:
+      specifier: ^4.1.2
+      version: 4.1.2
     simple-git-hooks:
       specifier: ^2.11.1
       version: 2.13.1
@@ -151,9 +160,15 @@ importers:
       '@vue/compiler-sfc':
         specifier: 3.4.21
         version: 3.4.21
+      cac:
+        specifier: 'catalog:'
+        version: 6.7.14
       chokidar:
         specifier: 'catalog:'
         version: 4.0.3
+      proper-lockfile:
+        specifier: 'catalog:'
+        version: 4.1.2
       tinyglobby:
         specifier: ^0.2.15
         version: 0.2.15
@@ -164,6 +179,9 @@ importers:
         specifier: 2 || 3
         version: 3.5.22(typescript@5.9.3)
     devDependencies:
+      '@types/proper-lockfile':
+        specifier: 'catalog:'
+        version: 4.1.4
       vite:
         specifier: 'catalog:'
         version: 6.1.0(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
@@ -224,9 +242,6 @@ importers:
       '@dcloudio/uni-quickapp-webview':
         specifier: 3.0.0-4070620250821001
         version: 3.0.0-4070620250821001(@nuxt/kit@3.20.0)(postcss@8.5.6)(rollup@4.52.5)(vue@3.5.22(typescript@5.9.3))
-      postinstall:
-        specifier: node ./scripts/postinstall.mjs
-        version: link:node ./scripts/postinstall.mjs
       vue:
         specifier: ^3.4.21
         version: 3.5.22(typescript@5.9.3)
@@ -2196,6 +2211,12 @@ packages:
 
   '@types/prettier@2.7.3':
     resolution: {integrity: sha512-+68kP9yzs4LMp7VNh8gdzMSPZFL44MLGqiHWvttYJe+6qnuVr4Ek9wSBQoveqY/r+LwjCcU29kNVkidwim+kYA==}
+
+  '@types/proper-lockfile@4.1.4':
+    resolution: {integrity: sha512-uo2ABllncSqg9F1D4nugVl9v93RmjxF6LJzQLMLDdPaXCUIDPeOJ21Gbqi43xNKzBi/WQ0Q0dICqufzQbMjipQ==}
+
+  '@types/retry@0.12.5':
+    resolution: {integrity: sha512-3xSjTp3v03X/lSQLkczaN9UIEwJMoMCA1+Nb5HfbJEQWogdeQIyVtTvxPXDQjZ5zws8rFQfVfRdz03ARihPJgw==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -4762,6 +4783,9 @@ packages:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
     engines: {node: '>= 6'}
 
+  proper-lockfile@4.1.2:
+    resolution: {integrity: sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA==}
+
   proxy-addr@2.0.7:
     resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
     engines: {node: '>= 0.10'}
@@ -4899,6 +4923,10 @@ packages:
   restore-cursor@5.1.0:
     resolution: {integrity: sha512-oMA2dcrw6u0YfxJQXm342bFKX/E4sG9rbTzO9ptUcR/e8A33cHuvStiYOwH7fszkZlZ1z/ta9AAoPk2F4qIOHA==}
     engines: {node: '>=18'}
+
+  retry@0.12.0:
+    resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
+    engines: {node: '>= 4'}
 
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
@@ -8292,6 +8320,12 @@ snapshots:
 
   '@types/prettier@2.7.3': {}
 
+  '@types/proper-lockfile@4.1.4':
+    dependencies:
+      '@types/retry': 0.12.5
+
+  '@types/retry@0.12.5': {}
+
   '@types/stack-utils@2.0.3': {}
 
   '@types/unist@3.0.3': {}
@@ -11474,6 +11508,12 @@ snapshots:
       kleur: 3.0.3
       sisteransi: 1.0.5
 
+  proper-lockfile@4.1.2:
+    dependencies:
+      graceful-fs: 4.2.11
+      retry: 0.12.0
+      signal-exit: 3.0.7
+
   proxy-addr@2.0.7:
     dependencies:
       forwarded: 0.2.0
@@ -11597,6 +11637,8 @@ snapshots:
     dependencies:
       onetime: 7.0.0
       signal-exit: 4.1.0
+
+  retry@0.12.0: {}
 
   reusify@1.1.0: {}
 

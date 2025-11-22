@@ -9,10 +9,12 @@ catalog:
   '@iconify-json/svg-spinners': ^1.2.2
   '@shikijs/vitepress-twoslash': ^2.3.2
   '@types/node': ^22.13.4
+  '@types/proper-lockfile': ^4.1.4
   '@unocss/reset': ^65.5.0
   '@vueuse/core': ^12.7.0
   bumpp: ^10.0.3
   c12: ^3.3.0
+  cac: ^6.7.14
   chokidar: ^4.0.3
   eslint: ^9.20.1
   floating-vue: ^5.2.2
