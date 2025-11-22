@@ -1,7 +1,7 @@
 {
   "name": "@uni-aide/unplugin-uni-pages",
   "type": "module",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "@uni-aide/unplugin-uni-pages",
   "author": "hackycy",
   "license": "MIT",
