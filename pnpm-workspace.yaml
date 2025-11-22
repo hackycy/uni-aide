@@ -9,7 +9,7 @@ catalog:
   '@iconify-json/svg-spinners': ^1.2.2
   '@shikijs/vitepress-twoslash': ^2.3.2
   '@types/node': ^22.13.4
-  '@types/proper-lockfile': ^4.1.4
+  '@types/proper-lockfile': 4.1.4
   '@unocss/reset': ^65.5.0
   '@vueuse/core': ^12.7.0
   bumpp: ^10.0.3
@@ -22,7 +22,7 @@ catalog:
   lint-staged: ^15.4.3
   magic-string: ^0.30.19
   pinia: ^3.0.1
-  proper-lockfile: ^4.1.2
+  proper-lockfile: 4.1.2
   simple-git-hooks: ^2.11.1
   tsdown: ^0.15.11
   tsx: ^4.19.2

@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import process from 'node:process'
 import { findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
 import chokidar from 'chokidar'
+import lockfile from 'proper-lockfile'
 import { MANIFEST_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
 
@@ -71,6 +72,20 @@ export class Context {
   }
 
   async writeManifestJSON() {
+    // 使用 lockfile 防止并发写入
+    let release: (() => Promise<void>) | null = null
+
+    try {
+      release = await lockfile.lock(this.options.outputJsonPath, {
+        retries: 0,
+        stale: 5000,
+      })
+    }
+    catch {
+      // 获取锁失败，则视为被占用，直接返回
+      return
+    }
+
     try {
       const jsonc = await parse(MANIFEST_CONFIG_FILE, {
         cwd: this.options.configSource,
@@ -82,6 +97,11 @@ export class Context {
     catch (error) {
       console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generation failed.`)
       console.error(error instanceof Error ? error.message : `${error}`)
+    }
+    finally {
+      if (release) {
+        await release()
+      }
     }
   }
 }

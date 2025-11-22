@@ -11,7 +11,9 @@
     "url": "git+https://github.com/hackycy/uni-aide.git"
   },
   "bugs": "https://github.com/hackycy/uni-aide/issues",
-  "keywords": ["uniapp"],
+  "keywords": [
+    "uniapp"
+  ],
   "sideEffects": false,
   "exports": {
     ".": {
@@ -65,9 +67,11 @@
   "dependencies": {
     "@uni-aide/core": "workspace:^",
     "chokidar": "catalog:",
+    "proper-lockfile": "catalog:",
     "unplugin": "catalog:"
   },
   "devDependencies": {
+    "@types/proper-lockfile": "catalog:",
     "vite": "catalog:",
     "webpack": "catalog:"
   }
