@@ -35,6 +35,7 @@ export class Context {
   scanTabBarMap: Map<string, ScanPageRouteBlock> = new Map()
 
   private watcher: FSWatcher | null = null
+  private watchTargets: string[] = []
 
   constructor(private rawOptions: Options) {
     this.options = resolveOptions(this.rawOptions, this.root)
@@ -47,6 +48,10 @@ export class Context {
 
     this.root = root
     this.options = resolveOptions(this.rawOptions, this.root)
+
+    if (this.watcher) {
+      this.setupWatcher()
+    }
   }
 
   setupWatcher() {
@@ -55,26 +60,93 @@ export class Context {
       PAGES_CONFIG_FILE,
     )
     if (!sourceConfigPath) {
+      this.stopWatcher()
       return
     }
 
-    this.watcher = chokidar.watch(sourceConfigPath, {
-      ignoreInitial: true, // Don't fire events for initial add
-    })
+    const normalizedConfigPath = slash(sourceConfigPath)
+    const watchTargets = this.createWatchTargets(normalizedConfigPath)
+    if (watchTargets.length === 0) {
+      this.stopWatcher()
+      return
+    }
 
-    const handleFileChange = async () => {
+    if (this.watcher && this.hasSameWatchTargets(watchTargets)) {
+      return
+    }
+
+    this.stopWatcher()
+
+    this.watcher = chokidar.watch(watchTargets, {
+      ignoreInitial: true, // Don't fire events for initial add
+      ignored: this.options.exclude,
+    })
+    this.watchTargets = watchTargets
+
+    const handleFileChange = async (filePath?: string) => {
+      if (filePath && !this.shouldHandleFile(filePath, normalizedConfigPath)) {
+        return
+      }
       await this.writePagesJSON()
     }
 
+    this.watcher.on('add', handleFileChange)
     this.watcher.on('change', handleFileChange)
     this.watcher.on('unlink', handleFileChange)
   }
 
   async close() {
-    if (this.watcher) {
-      await this.watcher.close()
-      this.watcher = null
+    await this.stopWatcher()
+  }
+
+  private createWatchTargets(sourceConfigPath: string): string[] {
+    const targets = new Set<string>()
+    targets.add(sourceConfigPath)
+
+    if (this.options.scanDir && this.options.scanDir.length > 0) {
+      this.options.scanDir.forEach((dir) => {
+        targets.add(slash(dir))
+      })
     }
+
+    return Array.from(targets).sort()
+  }
+
+  private hasSameWatchTargets(nextTargets: string[]): boolean {
+    if (this.watchTargets.length !== nextTargets.length) {
+      return false
+    }
+
+    return this.watchTargets.every((target, index) => target === nextTargets[index])
+  }
+
+  private async stopWatcher() {
+    if (!this.watcher) {
+      this.watchTargets = []
+      return
+    }
+
+    const currentWatcher = this.watcher
+    this.watcher = null
+    this.watchTargets = []
+
+    try {
+      await currentWatcher.close()
+    }
+    catch (error) {
+      console.error('[unplugin-uni-pages] failed to close watcher.')
+      console.error(error instanceof Error ? error.message : `${error}`)
+    }
+  }
+
+  private shouldHandleFile(filePath: string, configPath: string): boolean {
+    const normalizedPath = slash(filePath)
+    if (normalizedPath === configPath) {
+      return true
+    }
+
+    const ext = path.extname(normalizedPath).slice(1).toLowerCase()
+    return Boolean(ext) && FILE_EXTENSIONS.includes(ext)
   }
 
   async writePagesJSON() {
@@ -399,9 +471,9 @@ export class Context {
         jsoncStringify(pageMeta, null, 2),
         { encoding: 'utf-8' },
       )
-      console.log(
-        `[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`,
-      )
+      // console.log(
+      //   `[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`,
+      // )
     }
     catch (error) {
       console.log(
