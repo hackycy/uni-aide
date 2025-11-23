@@ -16,6 +16,7 @@ const OUT_SIDE_PAGES: any = [
 
 module.exports = defineConfig({
   pages: [
+    ...OUT_SIDE_PAGES,
     {
       path: 'pages/index/index',
       style: {
@@ -29,7 +30,6 @@ module.exports = defineConfig({
         // #endif
       },
     },
-    ...OUT_SIDE_PAGES,
   ],
   globalStyle: {
     navigationBarTextStyle: 'black',

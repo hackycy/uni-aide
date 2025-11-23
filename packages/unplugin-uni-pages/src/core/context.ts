@@ -178,6 +178,22 @@ export class Context {
         pageMeta.pages = []
       }
 
+      // 记录最原始的页面路径排序
+      const originalPathSeqMap = new Map<string, number>()
+      pageMeta.pages.forEach((page, index) => {
+        originalPathSeqMap.set(page.path, index)
+      })
+      pageMeta.subPackages?.forEach((subPackage) => {
+        subPackage.pages?.forEach((subPage, index) => {
+          const fullPath = `${subPackage.root}/${subPage.path}`
+          originalPathSeqMap.set(fullPath, index)
+        })
+      })
+      // tabbar list 排序优先需要覆盖pages上的排序
+      pageMeta.tabBar?.list?.forEach((tabBarItem, index) => {
+        originalPathSeqMap.set(tabBarItem.pagePath, index)
+      })
+
       if (this.scanPagesMap.size > 0) {
         const mergedPages = new Set<string>()
         // 合并同样路径的页面配置，配置文件优先级高会覆盖扫描到的配置
@@ -254,8 +270,8 @@ export class Context {
         }).sort((a, b) => {
           const routeA = this.scanTabBarMap.get(a.pagePath)
           const routeB = this.scanTabBarMap.get(b.pagePath)
-          const seqA = routeA?.seq ?? DEFAULT_SEQ
-          const seqB = routeB?.seq ?? DEFAULT_SEQ
+          const seqA = originalPathSeqMap.get(a.pagePath) ?? routeA?.seq ?? DEFAULT_SEQ
+          const seqB = originalPathSeqMap.get(b.pagePath) ?? routeB?.seq ?? DEFAULT_SEQ
           return seqA - seqB
         })
       }
@@ -429,11 +445,13 @@ export class Context {
 
       // 处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
       pageMeta.pages
+        // 先根据路径字符串排序，确保相同路径时排序稳定
         .sort((a, b) => {
           const pageA = a.path
           const pageB = b.path
           return pageA.localeCompare(pageB)
         })
+        // tabBar 路径优先排序
         .sort((a, b) => {
           const tabBarA = pageMeta.tabBar?.list?.find(
             item => item.pagePath === a.path,
@@ -460,8 +478,8 @@ export class Context {
             // 如果都不在 tabBar 中，则根据 seq 排序
             const routeA = this.scanPagesMap.get(a.path)
             const routeB = this.scanPagesMap.get(b.path)
-            const seqA = routeA?.seq ?? 1
-            const seqB = routeB?.seq ?? 1
+            const seqA = originalPathSeqMap.get(a.path) ?? routeA?.seq ?? DEFAULT_SEQ
+            const seqB = originalPathSeqMap.get(b.path) ?? routeB?.seq ?? DEFAULT_SEQ
             return seqA - seqB
           }
         })
