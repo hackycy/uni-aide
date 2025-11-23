@@ -443,6 +443,29 @@ export class Context {
         })
       }
 
+      // 处理分包内页面排序
+      pageMeta.subPackages?.forEach((subPackage) => {
+        if (!subPackage.pages) {
+          return
+        }
+
+        subPackage.pages
+          .sort((a, b) => {
+            const pageA = a.path
+            const pageB = b.path
+            return pageA.localeCompare(pageB)
+          })
+          .sort((a, b) => {
+            const fullPathA = `${subPackage.root}/${a.path}`
+            const fullPathB = `${subPackage.root}/${b.path}`
+            const routeA = this.scanSubPackagesMap.get(fullPathA)
+            const routeB = this.scanSubPackagesMap.get(fullPathB)
+            const seqA = originalPathSeqMap.get(fullPathA) ?? routeA?.seq ?? DEFAULT_SEQ
+            const seqB = originalPathSeqMap.get(fullPathB) ?? routeB?.seq ?? DEFAULT_SEQ
+            return seqA - seqB
+          })
+      })
+
       // 处理pages排序 先根据路径字符串排序，再根据 seq 排序，如果包含在tabBar中则优先级取决于tabBar的seq
       pageMeta.pages
         // 先根据路径字符串排序，确保相同路径时排序稳定
