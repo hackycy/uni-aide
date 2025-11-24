@@ -95,17 +95,27 @@ export default defineConfig({
 <!-- lang 设置解析器，仅支持解析JSON、JSON5、JSONC，默认为JSON -->
 <!-- seq 设定排序，由小到大排序，默认都为Number最大值，当需要设置首页的页面可设置seq进行排序至首个元素 -->
 <!-- part 设定页面定义所属区域，如page、subPackage、tabBar，当为tabBar需要定义两个自定义块，一个为页面一个为tab配置 -->
+
+<!-- 1、普通页面 -->
 <route lang="json" seq="0">
 {
-  "style": { "navigationBarTitleText": "@uni-helper" }
+  "style": { "navigationBarTitleText": "@uni-aide" }
 }
 </route>
 
-<route lang="json" part="tabBar" seq="0">
+<!-- TabBar配置 (需配合1一起定义) -->
+<route lang="jsonc" part="tabBar" seq="0">
 {
   "iconPath": "static/home.png",
   "selectedIconPath": "static/home-selected.png",
   "text": "首页"
+}
+</route>
+
+<!-- 分包页面 -->
+<route lang="jsonc" part="subPackage" seq="0">
+{
+  "style": { "navigationBarTitleText": "@uni-aide" }
 }
 </route>
 ```
