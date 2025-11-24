@@ -11,6 +11,11 @@
 | [@uni-aide/unplugin-uni-manifest](./packages/unplugin-uni-manifest) | [![npm version](https://img.shields.io/npm/v/@uni-aide/unplugin-uni-manifest.svg)](https://www.npmjs.com/package/@uni-aide/unplugin-uni-manifest) |
 | [@uni-aide/unplugin-uni-pages](./packages/unplugin-uni-pages) | [![npm version](https://img.shields.io/npm/v/@uni-aide/unplugin-uni-pages.svg)](https://www.npmjs.com/package/@uni-aide/unplugin-uni-pages) |
 
+## 使用
+
+- [uniapp-starter](https://github.com/hackycy/uniapp-starter)
+- [playground](./playground/)
+
 ## 致谢
 
 - [uni-helper](https://github.com/uni-helper)
