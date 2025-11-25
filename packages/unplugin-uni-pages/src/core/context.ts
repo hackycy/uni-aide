@@ -117,7 +117,9 @@ export class Context {
       return false
     }
 
-    return this.watchTargets.every((target, index) => target === nextTargets[index])
+    return this.watchTargets.every(
+      (target, index) => target === nextTargets[index],
+    )
   }
 
   private async stopWatcher() {
@@ -270,8 +272,10 @@ export class Context {
         }).sort((a, b) => {
           const routeA = this.scanTabBarMap.get(a.pagePath)
           const routeB = this.scanTabBarMap.get(b.pagePath)
-          const seqA = originalPathSeqMap.get(a.pagePath) ?? routeA?.seq ?? DEFAULT_SEQ
-          const seqB = originalPathSeqMap.get(b.pagePath) ?? routeB?.seq ?? DEFAULT_SEQ
+          const seqA
+            = originalPathSeqMap.get(a.pagePath) ?? routeA?.seq ?? DEFAULT_SEQ
+          const seqB
+            = originalPathSeqMap.get(b.pagePath) ?? routeB?.seq ?? DEFAULT_SEQ
           return seqA - seqB
         })
       }
@@ -460,8 +464,10 @@ export class Context {
             const fullPathB = `${subPackage.root}/${b.path}`
             const routeA = this.scanSubPackagesMap.get(fullPathA)
             const routeB = this.scanSubPackagesMap.get(fullPathB)
-            const seqA = originalPathSeqMap.get(fullPathA) ?? routeA?.seq ?? DEFAULT_SEQ
-            const seqB = originalPathSeqMap.get(fullPathB) ?? routeB?.seq ?? DEFAULT_SEQ
+            const seqA
+              = originalPathSeqMap.get(fullPathA) ?? routeA?.seq ?? DEFAULT_SEQ
+            const seqB
+              = originalPathSeqMap.get(fullPathB) ?? routeB?.seq ?? DEFAULT_SEQ
             return seqA - seqB
           })
       })
@@ -501,8 +507,10 @@ export class Context {
             // 如果都不在 tabBar 中，则根据 seq 排序
             const routeA = this.scanPagesMap.get(a.path)
             const routeB = this.scanPagesMap.get(b.path)
-            const seqA = originalPathSeqMap.get(a.path) ?? routeA?.seq ?? DEFAULT_SEQ
-            const seqB = originalPathSeqMap.get(b.path) ?? routeB?.seq ?? DEFAULT_SEQ
+            const seqA
+              = originalPathSeqMap.get(a.path) ?? routeA?.seq ?? DEFAULT_SEQ
+            const seqB
+              = originalPathSeqMap.get(b.path) ?? routeB?.seq ?? DEFAULT_SEQ
             return seqA - seqB
           }
         })
@@ -596,6 +604,12 @@ export class Context {
           }
           else if (block.part === 'tabBar') {
             this.scanTabBarMap.set(routePath, block)
+          }
+          else {
+            // 不符合要求的 part，输出警告
+            console.warn(
+              `[unplugin-uni-pages] warning: invalid part "${block.part}" in route block of file ${file}. Expected "page", "subPackage", or "tabBar".`,
+            )
           }
         }
       }
