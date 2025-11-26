@@ -300,9 +300,9 @@ export class Context {
             })
           }
         })
-        this.scanSubPackagesMap.keys().forEach((routePath) => {
+        for (const routePath of this.scanSubPackagesMap.keys()) {
           allSubPackagesPath.add(routePath)
-        })
+        }
 
         // 排序路径数组：以便按顺序比较路径。
         // LCP函数：计算两个路径字符串的最长共同目录前缀（始终以 '/' 结尾）。
@@ -387,7 +387,7 @@ export class Context {
         }
 
         // 最终合并配置
-        parsedSubPackagesMap.entries().forEach(([root, paths]) => {
+        for (const [root, paths] of parsedSubPackagesMap.entries()) {
           for (const path of paths) {
             const fullPath = `${root}/${path}`
             if (!this.scanSubPackagesMap.has(fullPath)) {
@@ -444,7 +444,7 @@ export class Context {
               ) as any,
             )
           }
-        })
+        }
       }
 
       // 处理分包内页面排序
