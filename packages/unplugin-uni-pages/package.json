@@ -52,9 +52,6 @@
       ]
     }
   },
-  "bin": {
-    "uni-pages": "./bin/uni-pages.js"
-  },
   "files": [
     "client.d.ts",
     "dist"
@@ -74,7 +71,6 @@
   "dependencies": {
     "@uni-aide/core": "workspace:^",
     "@vue/compiler-sfc": "3.4.21",
-    "cac": "catalog:",
     "chokidar": "catalog:",
     "proper-lockfile": "catalog:",
     "tinyglobby": "^0.2.15",

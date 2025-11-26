@@ -24,9 +24,6 @@ catalogs:
     bumpp:
       specifier: ^10.0.3
       version: 10.3.1
-    cac:
-      specifier: ^6.7.14
-      version: 6.7.14
     chokidar:
       specifier: ^4.0.3
       version: 4.0.3
@@ -111,6 +108,8 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.18.12)(jiti@2.6.1)(jsdom@16.7.0)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
 
+  packages/cli: {}
+
   packages/core:
     dependencies:
       ast-kit:
@@ -166,9 +165,6 @@ importers:
       '@vue/compiler-sfc':
         specifier: 3.4.21
         version: 3.4.21
-      cac:
-        specifier: 'catalog:'
-        version: 6.7.14
       chokidar:
         specifier: 'catalog:'
         version: 4.0.3
