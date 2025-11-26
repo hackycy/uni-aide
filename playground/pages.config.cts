@@ -43,4 +43,17 @@ module.exports = defineConfig({
     borderStyle: 'white',
     backgroundColor: '#ffffff',
   },
+  subPackages: [
+    {
+      root: 'pages-sub',
+      pages: [
+        {
+          path: 'test',
+          style: {
+            navigationBarTitleText: 'Pages Sub Test',
+          },
+        },
+      ],
+    },
+  ],
 })
