@@ -2,7 +2,6 @@ import type { SFCBlock, SFCDescriptor, SFCParseOptions } from '@vue/compiler-sfc
 import type { ScanPageRouteBlock } from '../types'
 import { jsoncParse } from '@uni-aide/core'
 import { parse as VueParser } from '@vue/compiler-sfc'
-import { DEFAULT_SEQ } from './constants'
 
 export function parseSFC(code: string, options?: SFCParseOptions): SFCDescriptor {
   return (
@@ -31,9 +30,18 @@ export function getRouteSfcBlock(sfc?: SFCDescriptor): SFCBlock[] | undefined {
   return sfc?.customBlocks.filter(b => b.type === 'route')
 }
 
-export function parseSeq(seq: any): number {
-  const n = Number(seq)
-  return Number.isNaN(n) ? DEFAULT_SEQ : n
+export function parseSeq(seq: any): number | undefined {
+  if (isNumeric(seq)) {
+    return Number(seq)
+  }
+
+  return void 0
+}
+
+export type Numeric = number | string
+
+export function isNumeric(val: Numeric): val is string {
+  return typeof val === 'number' || /^-?\d+(?:\.\d+)?$/.test(val)
 }
 
 /**

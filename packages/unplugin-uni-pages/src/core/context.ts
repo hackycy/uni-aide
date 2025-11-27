@@ -273,9 +273,9 @@ export class Context {
           const routeA = this.scanTabBarMap.get(a.pagePath)
           const routeB = this.scanTabBarMap.get(b.pagePath)
           const seqA
-            = originalPathSeqMap.get(a.pagePath) ?? routeA?.seq ?? DEFAULT_SEQ
+            = routeA?.seq ?? originalPathSeqMap.get(a.pagePath) ?? DEFAULT_SEQ
           const seqB
-            = originalPathSeqMap.get(b.pagePath) ?? routeB?.seq ?? DEFAULT_SEQ
+            = routeB?.seq ?? originalPathSeqMap.get(b.pagePath) ?? DEFAULT_SEQ
           return seqA - seqB
         })
       }
@@ -465,9 +465,9 @@ export class Context {
             const routeA = this.scanSubPackagesMap.get(fullPathA)
             const routeB = this.scanSubPackagesMap.get(fullPathB)
             const seqA
-              = originalPathSeqMap.get(fullPathA) ?? routeA?.seq ?? DEFAULT_SEQ
+              = routeA?.seq ?? originalPathSeqMap.get(fullPathA) ?? DEFAULT_SEQ
             const seqB
-              = originalPathSeqMap.get(fullPathB) ?? routeB?.seq ?? DEFAULT_SEQ
+              = routeB?.seq ?? originalPathSeqMap.get(fullPathB) ?? DEFAULT_SEQ
             return seqA - seqB
           })
       })
@@ -508,9 +508,9 @@ export class Context {
             const routeA = this.scanPagesMap.get(a.path)
             const routeB = this.scanPagesMap.get(b.path)
             const seqA
-              = originalPathSeqMap.get(a.path) ?? routeA?.seq ?? DEFAULT_SEQ
+              = routeA?.seq ?? originalPathSeqMap.get(a.path) ?? DEFAULT_SEQ
             const seqB
-              = originalPathSeqMap.get(b.path) ?? routeB?.seq ?? DEFAULT_SEQ
+              = routeB?.seq ?? originalPathSeqMap.get(b.path) ?? DEFAULT_SEQ
             return seqA - seqB
           }
         })
