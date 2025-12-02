@@ -1,6 +1,7 @@
 {
   "name": "@uni-aide/cli",
   "version": "0.7.6",
+  "private": true,
   "description": "@uni-aide/cli",
   "author": "hackycy",
   "license": "MIT",
