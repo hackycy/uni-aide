@@ -33,7 +33,11 @@ export interface Options {
   /**
    * 扫描页面过滤，返回 false 则跳过该页面
    */
-  onScanPageFilter?: (pagePath: string, filePath: string) => undefined | void | false | Promise<undefined | void | false>
+  onScanPageFilter?: (
+    pagePath: string,
+    filePath: string,
+    blocks: ScanPageRouteBlock[],
+  ) => undefined | void | false | Promise<undefined | void | false>
 }
 
 export type ResolvedOptions = Required<Options> & {

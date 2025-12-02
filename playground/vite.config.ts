@@ -8,6 +8,11 @@ export default defineConfig({
   plugins: [
     UniPages({
       scanDir: ['src/pages'],
+      onScanPageFilter(pagePath, _filePath, _blocks) {
+        if (pagePath.includes('ignore')) {
+          return false
+        }
+      },
     }),
     UniManifest(),
     Uni(),

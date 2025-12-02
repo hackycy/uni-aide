@@ -595,10 +595,10 @@ export class Context {
           path.relative(this.options.inputDir, file),
         ).replace(new RegExp(`\\.(${FILE_EXTENSIONS.join('|')})$`), '')
 
-        const onFilterResult = async (pagePath: string, filePath: string) => {
+        const onFilterResult = async (pagePath: string, filePath: string, blocks: ScanPageRouteBlock[]) => {
           try {
             if (this.options.onScanPageFilter) {
-              return await this.options.onScanPageFilter(pagePath, filePath)
+              return await this.options.onScanPageFilter(pagePath, filePath, blocks)
             }
           }
           catch {
@@ -606,14 +606,19 @@ export class Context {
           }
         }
 
+        const filterResult = await onFilterResult(routePath, file, routeBlocks)
+        if (filterResult === false) {
+          continue
+        }
+
         for (const block of routeBlocks) {
-          if (block.part === 'page' && await onFilterResult(routePath, file) !== false) {
+          if (block.part === 'page') {
             this.scanPagesMap.set(routePath, block)
           }
-          else if (block.part === 'subPackage' && await onFilterResult(routePath, file) !== false) {
+          else if (block.part === 'subPackage') {
             this.scanSubPackagesMap.set(routePath, block)
           }
-          else if (block.part === 'tabBar' && await onFilterResult(routePath, file) !== false) {
+          else if (block.part === 'tabBar') {
             this.scanTabBarMap.set(routePath, block)
           }
           else {
