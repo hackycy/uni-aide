@@ -595,14 +595,25 @@ export class Context {
           path.relative(this.options.inputDir, file),
         ).replace(new RegExp(`\\.(${FILE_EXTENSIONS.join('|')})$`), '')
 
+        const onFilterResult = async (pagePath: string, filePath: string) => {
+          try {
+            if (this.options.onScanPageFilter) {
+              return await this.options.onScanPageFilter(pagePath, filePath)
+            }
+          }
+          catch {
+            return undefined
+          }
+        }
+
         for (const block of routeBlocks) {
-          if (block.part === 'page') {
+          if (block.part === 'page' && await onFilterResult(routePath, file) !== false) {
             this.scanPagesMap.set(routePath, block)
           }
-          else if (block.part === 'subPackage') {
+          else if (block.part === 'subPackage' && await onFilterResult(routePath, file) !== false) {
             this.scanSubPackagesMap.set(routePath, block)
           }
-          else if (block.part === 'tabBar') {
+          else if (block.part === 'tabBar' && await onFilterResult(routePath, file) !== false) {
             this.scanTabBarMap.set(routePath, block)
           }
           else {

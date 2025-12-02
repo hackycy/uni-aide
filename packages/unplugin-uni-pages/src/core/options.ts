@@ -7,6 +7,8 @@ export const defaultOptions: Required<Omit<Options, 'configSource' | 'inputDir'>
   outDir: 'src',
   exclude: [],
   scanDir: [],
+  strict: false,
+  onScanPageFilter: () => undefined,
 }
 
 export function resolveOptions(

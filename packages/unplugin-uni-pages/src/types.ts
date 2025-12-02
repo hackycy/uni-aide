@@ -22,6 +22,18 @@ export interface Options {
    * 配置文件路径
    */
   configSource?: string
+
+  /**
+   * 是否启用严格模式，严格模式下会对分包路径进行校验
+   *
+   * @default false
+   */
+  strict?: boolean
+
+  /**
+   * 扫描页面过滤，返回 false 则跳过该页面
+   */
+  onScanPageFilter?: (pagePath: string, filePath: string) => undefined | void | false | Promise<undefined | void | false>
 }
 
 export type ResolvedOptions = Required<Options> & {
