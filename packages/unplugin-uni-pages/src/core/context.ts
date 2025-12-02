@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import {
+  compareStringWithFile,
   findConfigFile,
   jsoncAssign,
   jsoncParse,
@@ -515,9 +516,15 @@ export class Context {
           }
         })
 
+      const jsonStr = jsoncStringify(pageMeta, null, 2)
+      const isSame = await compareStringWithFile(jsonStr, this.options.outputJsonPath)
+      if (isSame) {
+        return
+      }
+
       await fs.promises.writeFile(
         this.options.outputJsonPath,
-        jsoncStringify(pageMeta, null, 2),
+        jsonStr,
         { encoding: 'utf-8' },
       )
       // console.log(

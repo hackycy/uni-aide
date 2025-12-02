@@ -2,7 +2,7 @@ import type { FSWatcher } from 'chokidar'
 import type { Options, ResolvedOptions } from '../types'
 import fs from 'node:fs'
 import process from 'node:process'
-import { findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
+import { compareStringWithFile, findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
 import chokidar from 'chokidar'
 import lockfile from 'proper-lockfile'
 import { MANIFEST_CONFIG_FILE } from './constants'
@@ -90,6 +90,12 @@ export class Context {
       const jsonc = await parse(MANIFEST_CONFIG_FILE, {
         cwd: this.options.configSource,
       })
+
+      const jsonStr = jsoncStringify(jsoncParse(jsonc), null, 2)
+      const isSame = await compareStringWithFile(jsonStr, this.options.outputJsonPath)
+      if (isSame) {
+        return
+      }
 
       await fs.promises.writeFile(this.options.outputJsonPath, jsoncStringify(jsoncParse(jsonc), null, 2), { encoding: 'utf-8' })
       // console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)

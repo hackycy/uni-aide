@@ -1,5 +1,6 @@
 import MagicString from 'magic-string'
 
+export * from './compare'
 export { findConfigFile, parse } from './config-parser'
 export {
   CommentArray,
