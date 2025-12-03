@@ -25,5 +25,8 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "commander": "^14.0.2"
   }
 }
