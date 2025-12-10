@@ -44,14 +44,20 @@ export function resolveOptions(
   }
 
   // 解析 scanDir
-  if (rawOptions.scanDir && rawOptions.scanDir.length > 0) {
-    resolved.scanDir = rawOptions.scanDir
-      .map((dir) => {
-        if (path.isAbsolute(dir)) {
-          return dir
-        }
-        return path.join(root, dir)
-      })
+  if (rawOptions.scanDir) {
+    const scanDir: string[] = Array.isArray(rawOptions.scanDir)
+      ? rawOptions.scanDir
+      : [rawOptions.scanDir]
+
+    if (scanDir.length > 0) {
+      resolved.scanDir = scanDir
+        .map((dir) => {
+          if (path.isAbsolute(dir)) {
+            return dir
+          }
+          return path.join(root, dir)
+        })
+    }
   }
 
   // 解析 inputDir

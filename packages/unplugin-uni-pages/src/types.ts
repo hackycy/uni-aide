@@ -5,7 +5,7 @@ export interface Options {
    * @example ['src/pages', 'src/sub-packages']
    * @default []
    */
-  scanDir?: string[]
+  scanDir?: string | string[]
 
   /**
    * 扫描时排除的目录或文件 (glob patterns)
