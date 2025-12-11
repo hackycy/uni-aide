@@ -51,6 +51,9 @@ export type ResolvedOptions = Required<Options> & {
    * @default process.env.UNI_INPUT_DIR
    */
   inputDir: string
+
+  // override  scanDir to array
+  scanDir: string[]
 }
 
 export interface ScanPageRouteBlock {
