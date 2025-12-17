@@ -335,57 +335,56 @@ export class Context {
           }
         }
 
+        // 存储 <root, pagePath[]>
         const parsedSubPackagesMap = new Map<string, string[]>()
-        let currentGroup: string[] = [sortedPaths[0]]
 
-        // 初始化当前LCP：第一个路径的目录部分（以'/'结尾）
-        let currentLCP: string = sortedPaths[0].includes('/')
-          ? sortedPaths[0].substring(0, sortedPaths[0].lastIndexOf('/') + 1)
-          : ''
+        // 获取路径的目录前缀（以'/'结尾）
+        const dirPrefix = (p: string) =>
+          p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : ''
+
+        const finalizeGroup = (group: string[], groupLCP: string) => {
+          let lcp = groupLCP
+          if (!lcp) {
+            lcp = dirPrefix(group[0])
+          }
+
+          const root = lcp.endsWith('/') ? lcp.slice(0, -1) : lcp
+          if (!root) {
+            return
+          }
+
+          if (!parsedSubPackagesMap.has(root)) {
+            parsedSubPackagesMap.set(root, [])
+          }
+
+          for (const p of group) {
+            const page = p.substring(lcp.length)
+            parsedSubPackagesMap.get(root)!.push(page)
+          }
+        }
+
+        let currentGroup: string[] = [sortedPaths[0]]
+        // 当前组的 LCP（以 '/' 结尾）
+        let currentLCP: string = dirPrefix(sortedPaths[0])
 
         for (let i = 1; i < sortedPaths.length; i++) {
-          const path = sortedPaths[i]
-          const newLCP = lcpPath(currentLCP, path)
+          const fullPath = sortedPaths[i]
+          const nextLCP = lcpPath(currentLCP, fullPath)
 
-          if (newLCP === currentLCP) {
-            // 路径属于当前组
-            currentGroup.push(path)
+          // nextLCP 为空：说明没有共同目录，需要拆组
+          if (!nextLCP) {
+            finalizeGroup(currentGroup, currentLCP)
+            currentGroup = [fullPath]
+            currentLCP = dirPrefix(fullPath)
+            continue
           }
-          else {
-            // 最终化当前组：添加根和页面到结果
-            const root = currentLCP.endsWith('/')
-              ? currentLCP.slice(0, -1)
-              : currentLCP
 
-            if (!parsedSubPackagesMap.has(root)) {
-              parsedSubPackagesMap.set(root, [])
-            }
-
-            for (const p of currentGroup) {
-              const page = p.substring(currentLCP.length)
-              parsedSubPackagesMap.get(root)!.push(page)
-            }
-
-            // 开始新的组
-            currentGroup = [path]
-            currentLCP = path.includes('/')
-              ? path.substring(0, path.lastIndexOf('/') + 1)
-              : ''
-          }
+          // 同组：允许 currentLCP 变短（例如：pages/onecard/order/list + pages/onecard/search => pages/onecard/）
+          currentGroup.push(fullPath)
+          currentLCP = nextLCP
         }
 
-        // 最终化最后一个组
-        const root = currentLCP.endsWith('/')
-          ? currentLCP.slice(0, -1)
-          : currentLCP
-        if (!parsedSubPackagesMap.has(root)) {
-          parsedSubPackagesMap.set(root, [])
-        }
-
-        for (const p of currentGroup) {
-          const page = p.substring(currentLCP.length)
-          parsedSubPackagesMap.get(root)!.push(page)
-        }
+        finalizeGroup(currentGroup, currentLCP)
 
         // 最终合并配置
         for (const [root, paths] of parsedSubPackagesMap.entries()) {
