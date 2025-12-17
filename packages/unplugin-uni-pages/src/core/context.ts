@@ -335,12 +335,29 @@ export class Context {
           }
         }
 
-        // 存储 <root, pagePath[]>
         const parsedSubPackagesMap = new Map<string, string[]>()
 
-        // 获取路径的目录前缀（以'/'结尾）
         const dirPrefix = (p: string) =>
           p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : ''
+
+        const shouldSplitByLCP = (nextLCP: string, currentLCP: string) => {
+          // nextLCP 为空：说明没有共同目录，需要拆组
+          if (!nextLCP) {
+            return true
+          }
+
+          // 避免把不同分包“合并到过宽的根目录”。
+          // 同时避免过短拆分
+          // 如果 LCP 变成了只有一级的目录（如 'pages/'，'views/'），且比当前组的 LCP 短，
+          // 说明我们跨越了两个不同的子目录（如 'pages/sub1' 和 'pages/sub2'），
+          // 此时应该拆分，保留各自的 root，而不是合并到 'pages/'。
+          const isTopLevel = nextLCP.split('/').length === 2
+          if (isTopLevel && currentLCP !== nextLCP) {
+            return true
+          }
+
+          return false
+        }
 
         const finalizeGroup = (group: string[], groupLCP: string) => {
           let lcp = groupLCP
@@ -364,15 +381,14 @@ export class Context {
         }
 
         let currentGroup: string[] = [sortedPaths[0]]
-        // 当前组的 LCP（以 '/' 结尾）
+        // 当前组的 LCP（以 '/' 结尾）。注意：它可能会随着更多路径加入而“变短”。
         let currentLCP: string = dirPrefix(sortedPaths[0])
 
         for (let i = 1; i < sortedPaths.length; i++) {
           const fullPath = sortedPaths[i]
           const nextLCP = lcpPath(currentLCP, fullPath)
 
-          // nextLCP 为空：说明没有共同目录，需要拆组
-          if (!nextLCP) {
+          if (shouldSplitByLCP(nextLCP, currentLCP)) {
             finalizeGroup(currentGroup, currentLCP)
             currentGroup = [fullPath]
             currentLCP = dirPrefix(fullPath)
