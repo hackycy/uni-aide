@@ -133,6 +133,34 @@ importers:
         specifier: ^7.28.4
         version: 7.28.5
 
+  packages/unplugin-uni-layouts:
+    dependencies:
+      '@uni-aide/core':
+        specifier: workspace:^
+        version: link:../core
+      chokidar:
+        specifier: 'catalog:'
+        version: 4.0.3
+      proper-lockfile:
+        specifier: 'catalog:'
+        version: 4.1.2
+      unplugin:
+        specifier: 'catalog:'
+        version: 2.3.10
+      vue:
+        specifier: 2 || 3
+        version: 3.5.22(typescript@5.9.3)
+    devDependencies:
+      '@types/proper-lockfile':
+        specifier: 'catalog:'
+        version: 4.1.4
+      vite:
+        specifier: 'catalog:'
+        version: 6.1.0(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+      webpack:
+        specifier: 'catalog:'
+        version: 5.102.1
+
   packages/unplugin-uni-manifest:
     dependencies:
       '@uni-aide/core':
