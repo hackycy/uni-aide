@@ -45,7 +45,7 @@ module.exports = defineConfig({
   },
   subPackages: [
     {
-      root: 'pages-sub',
+      root: 'pages-sub2',
       pages: [
         {
           path: 'test',

@@ -7,7 +7,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [
     UniPages({
-      scanDir: ['src/pages'],
+      scanDir: ['src/pages', 'src/pages-sub'],
       onScanPageFilter(pagePath, _filePath, _blocks) {
         if (pagePath.includes('ignore')) {
           return false

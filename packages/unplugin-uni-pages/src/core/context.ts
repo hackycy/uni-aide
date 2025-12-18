@@ -290,15 +290,18 @@ export class Context {
 
         // 所有分包页面路径
         const allSubPackagesPath = new Set<string>()
+        // 配置文件中已分配的分包路径，该路径优先，避免自动分配冲突
+        const defineSubPackageRoots = new Set<string>()
         pageMeta.subPackages.forEach((subPackage) => {
-          if (
-            subPackage.root
-            && subPackage.pages
-            && subPackage.pages.length > 0
-          ) {
-            subPackage.pages.forEach((subPage) => {
-              allSubPackagesPath.add(`${subPackage.root}/${subPage.path}`)
-            })
+          if (subPackage.root) {
+            defineSubPackageRoots.add(subPackage.root)
+
+            // 记录已存在的分包页面路径
+            if (subPackage.pages && subPackage.pages.length > 0) {
+              subPackage.pages.forEach((subPage) => {
+                allSubPackagesPath.add(`${subPackage.root}/${subPage.path}`)
+              })
+            }
           }
         })
         for (const routePath of this.scanSubPackagesMap.keys()) {
@@ -346,14 +349,26 @@ export class Context {
             return true
           }
 
-          // 避免把不同分包“合并到过宽的根目录”。
-          // 同时避免过短拆分
-          // 如果 LCP 变成了只有一级的目录（如 'pages/'，'views/'），且比当前组的 LCP 短，
-          // 说明我们跨越了两个不同的子目录（如 'pages/sub1' 和 'pages/sub2'），
-          // 此时应该拆分，保留各自的 root，而不是合并到 'pages/'。
+          // currentLCP 被更短的已定义分包根包含, 继续归为一组
+          if (Array.from(defineSubPackageRoots).some(root => currentLCP.startsWith(`${root}/`) && currentLCP !== root)) {
+            return false
+          }
+
+          // 如果 LCP 变成了只有一级的目录（如 'pages/'）
+          // 只要这个一级目录下未存在文件，那么则视为非最短的分包根，继续归为一组
+          // 即 pages/ 下还有其他文件，则说明 pages/ 是一个有效的分包根，需拆组
+          // 如果 pages/ 下没有其他文件，则说明 pages/ 不是一个有效的分包根，继续归为一组
+          // 例如 pages/a 和 pages/b/a 的 LCP 是 pages/ （a为文件）
           const isTopLevel = nextLCP.split('/').length === 2
-          if (isTopLevel && currentLCP !== nextLCP) {
-            return true
+          if (isTopLevel) {
+            const potentialRoot = nextLCP.slice(0, -1) // 去掉末尾斜杠
+            const hasFiles = Array.from(allSubPackagesPath).some(
+              p => p !== potentialRoot && p.startsWith(`${potentialRoot}/`) && p.split('/').length <= 2,
+            )
+            // 当前目录下没有文件，则不该使用该目录作为分包根
+            if (!hasFiles) {
+              return true
+            }
           }
 
           return false
@@ -381,7 +396,7 @@ export class Context {
         }
 
         let currentGroup: string[] = [sortedPaths[0]]
-        // 当前组的 LCP（以 '/' 结尾）。注意：它可能会随着更多路径加入而“变短”。
+        // 当前组的 LCP（以 '/' 结尾）。
         let currentLCP: string = dirPrefix(sortedPaths[0])
 
         for (let i = 1; i < sortedPaths.length; i++) {

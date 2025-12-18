@@ -1,5 +1,5 @@
 <template>
-  <view>Pages Sub</view>
+  <view>Pages Sub2</view>
 </template>
 
 <script setup lang="ts">
@@ -13,7 +13,7 @@ onShow(() => {
 <route lang="jsonc" part="subPackage">
 {
   "style": {
-    "navigationBarTitleText": "Pages Sub",
+    "navigationBarTitleText": "Pages Sub2",
     // #ifdef H5
     "navigationStyle": "custom"
     // #endif
