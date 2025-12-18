@@ -12,6 +12,9 @@ export const DEFAULT_SEQ = 999999
 export const VIRTUAL_MODULE_ID = '~uni-pages'
 export const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`
 
+// Special compiler macros
+export const DEFINE_PAGE = 'definePage'
+
 /**
  * {@link https://github.com/dcloudio/uni-preset-vue/blob/vite-alpha/src/pages.json}
  */
