@@ -36,9 +36,13 @@
     "ast-kit": "^2.2.0",
     "comment-json": "^4.4.1",
     "magic-string": "catalog:",
+    "oxc-parser": "^0.104.0",
+    "oxc-transform": "^0.104.0",
+    "oxc-walker": "^0.6.0",
     "unconfig": "^7.3.3"
   },
   "devDependencies": {
-    "@babel/types": "^7.28.4"
+    "@babel/types": "^7.28.4",
+    "@types/estree": "^1.0.8"
   }
 }
