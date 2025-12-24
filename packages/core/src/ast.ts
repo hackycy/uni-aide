@@ -120,3 +120,8 @@ export async function babelParse(...args: Parameters<typeof import('ast-kit')['b
   const { babelParse: _babelParse } = await import('ast-kit')
   return _babelParse(...args)
 }
+
+export async function oxcParse(...args: Parameters<typeof import('oxc-parser')['parseSync']>) {
+  const { parseSync } = await import('oxc-parser')
+  return parseSync(...args)
+}
