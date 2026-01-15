@@ -10,7 +10,7 @@ import writeFile from 'write-file-atomic'
 export async function atomicWriteFile(
   targetPath: string,
   data: string | Buffer,
-  options: BufferEncoding = 'utf-8',
+  options: BufferEncoding | { encoding?: BufferEncoding } = 'utf-8',
 ): Promise<void> {
   await writeFile(targetPath, data, options)
 }
