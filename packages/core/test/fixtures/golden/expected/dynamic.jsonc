@@ -1,0 +1,19 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "UNI_APP",
+        // #ifdef H5
+        "enablePullDownRefresh": true
+        // #endif
+      }
+    },
+    // #ifdef MP-WEIXIN
+    {
+      // inside dynamic page
+      "path": "pages/dyn/index"
+    }
+    // #endif
+  ]
+}

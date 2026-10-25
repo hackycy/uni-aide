@@ -1,0 +1,8 @@
+{
+  // before spread
+  "fromBase": true,
+  // before computed
+  "dynamic": 1,
+  // before numeric
+  "2": "two"
+}

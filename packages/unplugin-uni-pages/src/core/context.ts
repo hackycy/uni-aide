@@ -1,3 +1,4 @@
+import type { CommentEntry, Diagnostic, Placement } from '@uni-aide/core'
 import type { FSWatcher } from 'chokidar'
 import type { PagesConfig, SubPackage } from '..'
 import type { Options, ResolvedOptions, ScanPageRouteBlock } from '../types'
@@ -6,17 +7,27 @@ import path from 'node:path'
 import process from 'node:process'
 import {
   atomicWriteFile,
+  compareStrings,
   compareStringWithFile,
+  ConfigError,
+  emitJSONC,
   findConfigFile,
-  jsoncAssign,
   jsoncParse,
   jsoncStringify,
-  parse,
+  parseConfig,
+  validateRegions,
+  walkCommentEntries,
 } from '@uni-aide/core'
 import chokidar from 'chokidar'
 import lockfile from 'proper-lockfile'
 import { globSync } from 'tinyglobby'
 import { DEFAULT_SEQ, FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
+import {
+  createInjectionTracker,
+  markInjectedKey,
+  mergeScanContent,
+  pushInjectedElement,
+} from './merge'
 import { resolveOptions } from './options'
 import {
   extsToGlob,
@@ -169,17 +180,26 @@ export class Context {
     }
 
     try {
-      const jsonc = await parse(PAGES_CONFIG_FILE, {
+      const configPath = findConfigFile(
+        this.options.configSource,
+        PAGES_CONFIG_FILE,
+      ) ?? this.options.configSource
+      const parsed = await parseConfig(PAGES_CONFIG_FILE, {
         cwd: this.options.configSource,
       })
+      this.reportDiagnostics(parsed.diagnostics)
+      this.assertNoErrors(parsed.diagnostics)
 
       // 扫描页面
       await this.scan()
 
-      // 合并扫描结果
-      const pageMeta = jsoncParse(jsonc) as PagesConfig
+      // 合并扫描结果（值树 + 以对象引用为键的注释索引）
+      const pageMeta = parsed.value as PagesConfig
+      const { comments, orderHints } = parsed
+      const tracker = createInjectionTracker(comments)
       if (!pageMeta.pages) {
         pageMeta.pages = []
+        markInjectedKey(tracker, pageMeta, 'pages')
       }
 
       // 记录最原始的页面路径排序
@@ -200,11 +220,11 @@ export class Context {
 
       if (this.scanPagesMap.size > 0) {
         const mergedPages = new Set<string>()
-        // 合并同样路径的页面配置，配置文件优先级高会覆盖扫描到的配置
+        // 合并同样路径的页面配置；配置文件已有的 key 优先
         pageMeta.pages.forEach((page) => {
           const route = this.scanPagesMap.get(page.path)
           if (route) {
-            jsoncAssign(page, route.content)
+            mergeScanContent(tracker, page, route.content, route.file)
             mergedPages.add(page.path)
           }
         })
@@ -215,12 +235,9 @@ export class Context {
             continue
           }
 
-          pageMeta.pages.push(
-            jsoncAssign(
-              forbiddenOverwritePagePath({}, 'path', routePath),
-              route.content,
-            ) as any,
-          )
+          const page = forbiddenOverwritePagePath({}, 'path', routePath)
+          mergeScanContent(tracker, page, route.content, route.file)
+          pushInjectedElement(tracker, pageMeta.pages, page)
           mergedPages.add(routePath)
         }
       }
@@ -229,24 +246,19 @@ export class Context {
         // prevent tabBar or tabBar.list is undefined
         if (!pageMeta.tabBar) {
           pageMeta.tabBar = {}
+          markInjectedKey(tracker, pageMeta, 'tabBar')
         }
         if (!pageMeta.tabBar.list) {
           pageMeta.tabBar.list = []
+          markInjectedKey(tracker, pageMeta.tabBar, 'list')
         }
 
         const mergedTabBarPages = new Set<string>()
-        // 合并同样路径的 tabBar 配置，配置文件优先级高会覆盖扫描到的配置
+        // 合并同样路径的 tabBar 配置；配置文件已有的 key 优先
         pageMeta.tabBar.list!.forEach((tabBarItem) => {
           const route = this.scanTabBarMap.get(tabBarItem.pagePath)
           if (route) {
-            jsoncAssign(
-              forbiddenOverwritePagePath(
-                tabBarItem,
-                'pagePath',
-                tabBarItem.pagePath,
-              ),
-              route.content,
-            )
+            mergeScanContent(tracker, tabBarItem, route.content, route.file)
             mergedTabBarPages.add(tabBarItem.pagePath)
           }
         })
@@ -256,21 +268,16 @@ export class Context {
             continue
           }
 
-          pageMeta.tabBar.list!.push(
-            jsoncAssign(
-              forbiddenOverwritePagePath({}, 'pagePath', routePath),
-              route.content,
-            ) as any,
-          )
+          const tabBarItem = forbiddenOverwritePagePath({}, 'pagePath', routePath)
+          mergeScanContent(tracker, tabBarItem, route.content, route.file)
+          pushInjectedElement(tracker, pageMeta.tabBar.list!, tabBarItem)
           mergedTabBarPages.add(routePath)
         }
 
         // 处理排序 先根据路径字符串排序，再根据 seq 排序
         pageMeta.tabBar
           .list!.sort((a, b) => {
-          const pageA = a.pagePath
-          const pageB = b.pagePath
-          return pageA.localeCompare(pageB)
+          return compareStrings(a.pagePath, b.pagePath)
         }).sort((a, b) => {
           const routeA = this.scanTabBarMap.get(a.pagePath)
           const routeB = this.scanTabBarMap.get(b.pagePath)
@@ -287,6 +294,7 @@ export class Context {
         // prevent subPackages is undefined
         if (!pageMeta.subPackages) {
           pageMeta.subPackages = []
+          markInjectedKey(tracker, pageMeta, 'subPackages')
         }
 
         // 所有分包页面路径
@@ -452,25 +460,23 @@ export class Context {
                   )
 
             if (rootIdx !== -1 && pageIdx !== -1) {
-              jsoncAssign(
-                forbiddenOverwritePagePath(
-                  pageMeta.subPackages![rootIdx].pages![pageIdx],
-                  'path',
-                  path,
-                ),
+              mergeScanContent(
+                tracker,
+                pageMeta.subPackages![rootIdx].pages![pageIdx],
                 route.content,
+                route.file,
               )
               continue
             }
 
             // 不存在于原有配置，则新增
-            let subPackageItem: SubPackage | undefined
+            let subPackageItem: SubPackage
             if (rootIdx === -1) {
               subPackageItem = {
                 root,
                 pages: [],
               }
-              pageMeta.subPackages!.push(subPackageItem)
+              pushInjectedElement(tracker, pageMeta.subPackages!, subPackageItem)
             }
             else {
               subPackageItem = pageMeta.subPackages![rootIdx]
@@ -478,14 +484,12 @@ export class Context {
 
             if (!subPackageItem.pages) {
               subPackageItem.pages = []
+              markInjectedKey(tracker, subPackageItem, 'pages')
             }
 
-            subPackageItem.pages.push(
-              jsoncAssign(
-                forbiddenOverwritePagePath({}, 'path', path),
-                route.content,
-              ) as any,
-            )
+            const subPage = forbiddenOverwritePagePath({}, 'path', path)
+            mergeScanContent(tracker, subPage, route.content, route.file)
+            pushInjectedElement(tracker, subPackageItem.pages, subPage)
           }
         }
       }
@@ -498,9 +502,7 @@ export class Context {
 
         subPackage.pages
           .sort((a, b) => {
-            const pageA = a.path
-            const pageB = b.path
-            return pageA.localeCompare(pageB)
+            return compareStrings(a.path, b.path)
           })
           .sort((a, b) => {
             const fullPathA = `${subPackage.root}/${a.path}`
@@ -519,9 +521,7 @@ export class Context {
       pageMeta.pages
         // 先根据路径字符串排序，确保相同路径时排序稳定
         .sort((a, b) => {
-          const pageA = a.path
-          const pageB = b.path
-          return pageA.localeCompare(pageB)
+          return compareStrings(a.path, b.path)
         })
         // tabBar 路径优先排序
         .sort((a, b) => {
@@ -591,7 +591,32 @@ export class Context {
         conflicts.forEach(c => console.warn(`[unplugin-uni-pages] page path conflict detected: ${c}`))
       }
 
-      const jsonStr = jsoncStringify(pageMeta, null, 2)
+      // 排序/注入后按输出 DFS 顺序重新校验 region
+      const emitOptions = {
+        injectedElements: tracker.injectedElements,
+        injectedKeys: tracker.injectedKeys,
+      }
+      const outputOrder = walkCommentEntries(
+        pageMeta,
+        comments,
+        orderHints,
+        emitOptions,
+      )
+      // 注入子节点不参与配置侧的 region 配对
+      const configOrder = outputOrder.filter(
+        entry => !tracker.scanFiles.has(entry.source.file),
+      )
+      const placements: Placement[] = configOrder.map(
+        (comment: CommentEntry, sourceIndex) => ({
+          path: [],
+          slot: 'before',
+          comment,
+          sourceIndex,
+        }),
+      )
+      this.assertNoErrors(validateRegions(placements, configOrder, configPath))
+
+      const jsonStr = emitJSONC(pageMeta, comments, orderHints, emitOptions)
       const isSame = await compareStringWithFile(jsonStr, this.options.outputJsonPath)
       if (isSame) {
         return
@@ -616,6 +641,38 @@ export class Context {
       if (release) {
         await release()
       }
+    }
+  }
+
+  private assertNoErrors(diagnostics: Diagnostic[]): void {
+    const errors = diagnostics.filter(
+      diagnostic => diagnostic.severity === 'error',
+    )
+    if (errors.length === 0) {
+      return
+    }
+
+    const first = errors[0]
+    throw new ConfigError({
+      code: first.code,
+      file: first.file,
+      path: first.path,
+      message: first.message,
+      diagnostics: errors,
+    })
+  }
+
+  private reportDiagnostics(diagnostics: Diagnostic[]): void {
+    for (const diagnostic of diagnostics) {
+      if (diagnostic.severity !== 'warning') {
+        continue
+      }
+      const location = diagnostic.file
+        ? ` (${diagnostic.file}${diagnostic.line ? `:${diagnostic.line}` : ''})`
+        : ''
+      console.warn(
+        `[unplugin-uni-pages] ${diagnostic.code}: ${diagnostic.message}${location}`,
+      )
     }
   }
 

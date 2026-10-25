@@ -1,0 +1,14 @@
+export default {
+  // leading name
+  name: 'demo',
+  version: 1,
+  nested: {
+    // leading flag
+    enabled: true,
+  },
+  list: [
+    // leading item
+    'a',
+    'b',
+  ],
+}

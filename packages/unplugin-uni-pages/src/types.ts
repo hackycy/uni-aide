@@ -62,4 +62,6 @@ export interface ScanPageRouteBlock {
   // order (0..n)
   seq?: number
   content?: Record<string, any>
+  // 注释来源文件（诊断用）
+  file?: string
 }

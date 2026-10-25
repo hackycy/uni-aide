@@ -87,6 +87,7 @@ export function parseCustomBlock(block: SFCBlock, filePath: string): ScanPageRou
     part: `${block.attrs?.part ?? 'page'}` as ScanPageRouteBlock['part'],
     seq: parseSeq(block.attrs?.seq),
     content: content || {},
+    file: filePath,
   }
 }
 

@@ -2,9 +2,13 @@ import MagicString from 'magic-string'
 
 export * from './compare'
 
-export { findConfigFile, parse } from './config-parser'
-
+export { findConfigFile, parse, parseConfig } from './config-parser'
+export { emitJSONC, walkCommentEntries } from './emit'
+export { ConfigError } from './errors'
 export * from './file'
+export { validateRegions } from './regions'
+export * from './types'
+export { compareStrings } from './utils'
 
 export {
   CommentArray,

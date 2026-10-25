@@ -35,8 +35,8 @@
   "dependencies": {
     "ast-kit": "^2.2.0",
     "comment-json": "^4.4.1",
+    "jiti": "^2.6.1",
     "magic-string": "catalog:",
-    "unconfig": "^7.3.3",
     "write-file-atomic": "^7.0.0"
   },
   "devDependencies": {

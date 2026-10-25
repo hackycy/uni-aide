@@ -8,10 +8,19 @@ export function isString(val: any): boolean {
   return is(val, 'String')
 }
 
-export function isObject(val: any): boolean {
-  return val !== null && is(val, 'Object')
-}
-
 export function isArray(val: any): boolean {
   return Array.isArray(val)
+}
+
+/**
+ * 不依赖 locale 的字符串比较，保证跨环境输出顺序一致。
+ */
+export function compareStrings(a: string, b: string): number {
+  if (a < b) {
+    return -1
+  }
+  if (a > b) {
+    return 1
+  }
+  return 0
 }

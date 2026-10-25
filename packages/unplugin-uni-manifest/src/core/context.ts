@@ -1,7 +1,15 @@
+import type { Diagnostic } from '@uni-aide/core'
 import type { FSWatcher } from 'chokidar'
 import type { Options, ResolvedOptions } from '../types'
 import process from 'node:process'
-import { atomicWriteFile, compareStringWithFile, findConfigFile, jsoncParse, jsoncStringify, parse } from '@uni-aide/core'
+import {
+  atomicWriteFile,
+  compareStringWithFile,
+  ConfigError,
+  emitJSONC,
+  findConfigFile,
+  parseConfig,
+} from '@uni-aide/core'
 import chokidar from 'chokidar'
 import lockfile from 'proper-lockfile'
 import { MANIFEST_CONFIG_FILE } from './constants'
@@ -86,17 +94,20 @@ export class Context {
     }
 
     try {
-      const jsonc = await parse(MANIFEST_CONFIG_FILE, {
+      const parsed = await parseConfig(MANIFEST_CONFIG_FILE, {
         cwd: this.options.configSource,
       })
+      const diagnostics = downgradeRegionDiagnostics(parsed.diagnostics)
+      this.reportDiagnostics(diagnostics)
+      this.assertNoErrors(diagnostics)
 
-      const jsonStr = jsoncStringify(jsoncParse(jsonc), null, 2)
+      const jsonStr = emitJSONC(parsed.value, parsed.comments, parsed.orderHints)
       const isSame = await compareStringWithFile(jsonStr, this.options.outputJsonPath)
       if (isSame) {
         return
       }
 
-      await atomicWriteFile(this.options.outputJsonPath, jsoncStringify(jsoncParse(jsonc), null, 2), { encoding: 'utf-8' })
+      await atomicWriteFile(this.options.outputJsonPath, jsonStr, { encoding: 'utf-8' })
       // console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)
     }
     catch (error) {
@@ -109,4 +120,57 @@ export class Context {
       }
     }
   }
+
+  private assertNoErrors(diagnostics: Diagnostic[]): void {
+    const errors = diagnostics.filter(
+      diagnostic => diagnostic.severity === 'error',
+    )
+    if (errors.length === 0) {
+      return
+    }
+
+    const first = errors[0]
+    throw new ConfigError({
+      code: first.code,
+      file: first.file,
+      path: first.path,
+      message: first.message,
+      diagnostics: errors,
+    })
+  }
+
+  private reportDiagnostics(diagnostics: Diagnostic[]): void {
+    for (const diagnostic of diagnostics) {
+      if (diagnostic.severity !== 'warning') {
+        continue
+      }
+      const location = diagnostic.file
+        ? ` (${diagnostic.file}${diagnostic.line ? `:${diagnostic.line}` : ''})`
+        : ''
+      console.warn(
+        `[unplugin-uni-manifest] ${diagnostic.code}: ${diagnostic.message}${location}`,
+      )
+    }
+  }
+}
+
+/**
+ * 条件编译 region 相关诊断（ticket 06/12）。manifest 不执行条件编译，
+ * 这些诊断降级为 warning，不阻塞生成。
+ */
+const REGION_DIAGNOSTIC_CODES = new Set([
+  'unclosed-region',
+  'unmatched-endif',
+  'else-without-if',
+  'duplicate-else',
+  'crossed-region',
+  'empty-condition',
+])
+
+function downgradeRegionDiagnostics(diagnostics: Diagnostic[]): Diagnostic[] {
+  return diagnostics.map(diagnostic =>
+    diagnostic.severity === 'error' && REGION_DIAGNOSTIC_CODES.has(diagnostic.code)
+      ? { ...diagnostic, severity: 'warning' }
+      : diagnostic,
+  )
 }
