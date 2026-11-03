@@ -21,6 +21,23 @@ export function resolveOptions(
     rawOptions,
   ) as ResolvedOptions
 
+  const exclude: unknown = rawOptions.exclude
+  if (Array.isArray(exclude)) {
+    resolved.exclude = exclude.filter(
+      (value): value is string => typeof value === 'string',
+    )
+  }
+  else if (typeof exclude === 'string') {
+    resolved.exclude = [exclude]
+  }
+  else {
+    resolved.exclude = []
+  }
+
+  if (typeof rawOptions.onScanPageFilter !== 'function') {
+    resolved.onScanPageFilter = defaultOptions.onScanPageFilter
+  }
+
   // 解析 outputJsonPath
   if (resolved.outDir && path.isAbsolute(resolved.outDir)) {
     resolved.outputJsonPath = path.join(resolved.outDir, PAGES_JSON_FILE)
@@ -45,12 +62,15 @@ export function resolveOptions(
 
   // 解析 scanDir
   if (rawOptions.scanDir) {
-    const scanDir: string[] = Array.isArray(rawOptions.scanDir)
+    const scanDir: unknown[] = Array.isArray(rawOptions.scanDir)
       ? rawOptions.scanDir
       : [rawOptions.scanDir]
+    const dirs = scanDir.filter(
+      (dir): dir is string => typeof dir === 'string',
+    )
 
-    if (scanDir.length > 0) {
-      resolved.scanDir = scanDir
+    if (dirs.length > 0) {
+      resolved.scanDir = dirs
         .map((dir) => {
           if (path.isAbsolute(dir)) {
             return dir

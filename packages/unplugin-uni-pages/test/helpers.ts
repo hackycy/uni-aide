@@ -7,6 +7,7 @@ import { Context } from '../src/core/context'
 export interface TempProject {
   root: string
   outputPath: string
+  ctx: Context
   write: () => Promise<void>
   cleanup: () => Promise<void>
 }
@@ -45,11 +46,12 @@ export async function createTempProject(input: ProjectInput): Promise<TempProjec
     scanDir: ['src/pages'],
     ...input.options,
   })
-  ctx.setRoot(root)
+  await ctx.setRoot(root)
 
   return {
     root,
     outputPath,
+    ctx,
     write: () => ctx.writePagesJSON(),
     cleanup: async () => {
       await ctx.close()

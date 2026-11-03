@@ -55,22 +55,28 @@ export const unpluginFactory: UnpluginFactory<Options | undefined> = (
     },
     vite: {
       async configResolved(config) {
-        ctx.setRoot(config.root)
-        await ctx.writePagesJSON()
+        await ctx.setRoot(config.root)
 
         // Setup watcher in dev mode or build watch mode
         if (config.command === 'serve' || config.build.watch) {
-          ctx.setupWatcher()
+          await ctx.setupWatcher()
         }
+
+        await ctx.writePagesJSON()
       },
     },
     webpack(compiler) {
-      ctx.writePagesJSON()
-
-      // Only setup watcher in watch mode (development)
-      if (compiler.options.watch) {
-        ctx.setupWatcher()
+      const init = async () => {
+        await ctx.writePagesJSON()
+        if (compiler.options.watch) {
+          await ctx.setupWatcher()
+        }
       }
+
+      void init().catch((error) => {
+        console.error('[unplugin-uni-pages] initialization failed.')
+        console.error(error instanceof Error ? error.message : `${error}`)
+      })
     },
   }
 }

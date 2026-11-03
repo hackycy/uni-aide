@@ -2,6 +2,7 @@ import type { CommentEntry, Diagnostic, Placement } from '@uni-aide/core'
 import type { FSWatcher } from 'chokidar'
 import type { PagesConfig, SubPackage } from '..'
 import type { Options, ResolvedOptions, ScanPageRouteBlock } from '../types'
+import type { LoadScanEntriesOptions, ScanScope } from './scan'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
@@ -20,8 +21,7 @@ import {
 } from '@uni-aide/core'
 import chokidar from 'chokidar'
 import lockfile from 'proper-lockfile'
-import { globSync } from 'tinyglobby'
-import { DEFAULT_SEQ, FILE_EXTENSIONS, PAGES_CONFIG_FILE } from './constants'
+import { DEFAULT_SEQ, PAGES_CONFIG_FILE } from './constants'
 import {
   createInjectionTracker,
   markInjectedKey,
@@ -30,97 +30,226 @@ import {
 } from './merge'
 import { resolveOptions } from './options'
 import {
-  extsToGlob,
-  forbiddenOverwritePagePath,
-  getRouteSfcBlock,
-  parseCustomBlock,
-  parseSFC,
-  slash,
-} from './utils'
+  collectScanFiles,
+  createScanScope,
+  filterExactCase,
+  loadScanEntries,
+  normalizeFileKey,
+} from './scan'
+import { ScanIndex } from './scan-index'
+import { forbiddenOverwritePagePath, slash } from './utils'
+
+const REGENERATE_DEBOUNCE_MS = 30
 
 export class Context {
   options: ResolvedOptions
   root: string = process.cwd()
 
-  // scan pages
-  scanPagesMap: Map<string, ScanPageRouteBlock> = new Map()
-  scanSubPackagesMap: Map<string, ScanPageRouteBlock> = new Map()
-  scanTabBarMap: Map<string, ScanPageRouteBlock> = new Map()
-
+  private index = new ScanIndex()
+  private scope: ScanScope
   private watcher: FSWatcher | null = null
   private watchTargets: string[] = []
+  private configPath: string | null = null
+  private dirty = new Set<string>()
+  private removedDirs = new Set<string>()
+  private fullScanRequested = true
+  private generateRequested = false
+  private drainPromise: Promise<void> | null = null
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+  private readyResolve: (() => void) | null = null
+  private closed = false
 
   constructor(private rawOptions: Options) {
     this.options = resolveOptions(this.rawOptions, this.root)
+    this.configPath = this.findConfigPath()
+    this.scope = createScanScope(
+      this.options.scanDir,
+      this.options.exclude,
+      this.configPath,
+    )
   }
 
-  setRoot(root: string) {
+  get scanPagesMap(): ReadonlyMap<string, ScanPageRouteBlock> {
+    return this.index.pages
+  }
+
+  get scanSubPackagesMap(): ReadonlyMap<string, ScanPageRouteBlock> {
+    return this.index.subPackages
+  }
+
+  get scanTabBarMap(): ReadonlyMap<string, ScanPageRouteBlock> {
+    return this.index.tabBar
+  }
+
+  async setRoot(root: string) {
     if (this.root === root) {
       return
     }
 
+    const hadWatcher = Boolean(this.watcher)
+    await this.stopWatcher()
+    if (this.drainPromise) {
+      await this.drainPromise
+    }
+
     this.root = root
     this.options = resolveOptions(this.rawOptions, this.root)
+    this.resetScanState()
 
-    if (this.watcher) {
-      this.setupWatcher()
+    if (hadWatcher) {
+      await this.setupWatcher()
     }
   }
 
-  setupWatcher() {
-    const sourceConfigPath = findConfigFile(
-      this.options.configSource,
-      PAGES_CONFIG_FILE,
+  async setupWatcher() {
+    if (this.closed) {
+      return
+    }
+
+    this.configPath = this.findConfigPath()
+    this.scope = createScanScope(
+      this.options.scanDir,
+      this.options.exclude,
+      this.configPath,
     )
-    if (!sourceConfigPath) {
-      this.stopWatcher()
+
+    if (!this.configPath) {
+      await this.stopWatcher()
       return
     }
 
-    const normalizedConfigPath = slash(sourceConfigPath)
-    const watchTargets = this.createWatchTargets(normalizedConfigPath)
-    if (watchTargets.length === 0) {
-      this.stopWatcher()
-      return
-    }
-
+    const watchTargets = this.createWatchTargets(this.configPath)
     if (this.watcher && this.hasSameWatchTargets(watchTargets)) {
       return
     }
 
-    this.stopWatcher()
+    await this.stopWatcher()
 
-    this.watcher = chokidar.watch(watchTargets, {
+    const watcher = chokidar.watch(watchTargets, {
       ignoreInitial: true, // Don't fire events for initial add
-      ignored: this.options.exclude,
+      ignored: (filePath, stats) => this.scope.isIgnored(filePath, stats),
     })
+    this.watcher = watcher
     this.watchTargets = watchTargets
 
-    const handleFileChange = async (filePath?: string) => {
-      if (filePath && !this.shouldHandleFile(filePath, normalizedConfigPath)) {
-        return
-      }
-      await this.writePagesJSON()
-    }
+    watcher.on('add', filePath => this.notifyFileEvent(filePath))
+    watcher.on('change', filePath => this.notifyFileEvent(filePath))
+    watcher.on('unlink', filePath => this.notifyFileEvent(filePath))
+    watcher.on('unlinkDir', dirPath => this.notifyDirectoryRemoved(dirPath))
+    watcher.on('error', (error) => {
+      console.error('[unplugin-uni-pages] watcher error.')
+      console.error(error instanceof Error ? error.message : `${error}`)
+      this.fullScanRequested = true
+      this.scheduleFlush()
+    })
 
-    this.watcher.on('add', handleFileChange)
-    this.watcher.on('change', handleFileChange)
-    this.watcher.on('unlink', handleFileChange)
+    await new Promise<void>((resolve) => {
+      this.readyResolve = resolve
+      watcher.once('ready', () => {
+        this.readyResolve = null
+        resolve()
+      })
+      watcher.once('error', () => {
+        this.readyResolve = null
+        resolve()
+      })
+    })
   }
 
   async close() {
+    this.closed = true
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
     await this.stopWatcher()
+    if (this.drainPromise) {
+      await this.drainPromise
+    }
+  }
+
+  /** @internal */
+  notifyFileEvent(filePath: string) {
+    if (this.closed) {
+      return
+    }
+
+    const key = normalizeFileKey(filePath)
+    if (this.configPath && key === this.configPath) {
+      this.generateRequested = true
+      this.scheduleFlush()
+      return
+    }
+
+    if (!this.index.has(key) && !this.scope.isCandidate(key)) {
+      return
+    }
+
+    this.dirty.add(key)
+    this.scheduleFlush()
+  }
+
+  /** @internal */
+  notifyDirectoryRemoved(dirPath: string) {
+    if (this.closed) {
+      return
+    }
+
+    this.removedDirs.add(normalizeFileKey(dirPath))
+    this.scheduleFlush()
+  }
+
+  /** @internal */
+  async flush() {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+
+    while (!this.closed) {
+      if (this.drainPromise) {
+        await this.drainPromise
+      }
+      else if (this.hasPending()) {
+        await this.requestDrain()
+      }
+      else {
+        break
+      }
+    }
+  }
+
+  async writePagesJSON() {
+    this.fullScanRequested = true
+    await this.flush()
+  }
+
+  private findConfigPath(): string | null {
+    const configPath = findConfigFile(this.options.configSource, PAGES_CONFIG_FILE)
+    return configPath ? normalizeFileKey(configPath) : null
+  }
+
+  private resetScanState() {
+    this.configPath = this.findConfigPath()
+    this.scope = createScanScope(
+      this.options.scanDir,
+      this.options.exclude,
+      this.configPath,
+    )
+    this.index.clear()
+    this.dirty.clear()
+    this.removedDirs.clear()
+    this.fullScanRequested = true
+    this.generateRequested = false
   }
 
   private createWatchTargets(sourceConfigPath: string): string[] {
     const targets = new Set<string>()
     targets.add(sourceConfigPath)
 
-    if (this.options.scanDir && this.options.scanDir.length > 0) {
-      this.options.scanDir.forEach((dir) => {
-        targets.add(slash(dir))
-      })
-    }
+    this.options.scanDir.forEach((dir) => {
+      targets.add(slash(dir))
+    })
 
     return Array.from(targets).sort()
   }
@@ -136,6 +265,9 @@ export class Context {
   }
 
   private async stopWatcher() {
+    this.readyResolve?.()
+    this.readyResolve = null
+
     if (!this.watcher) {
       this.watchTargets = []
       return
@@ -154,31 +286,145 @@ export class Context {
     }
   }
 
-  private shouldHandleFile(filePath: string, configPath: string): boolean {
-    const normalizedPath = slash(filePath)
-    if (normalizedPath === configPath) {
-      return true
-    }
-
-    const ext = path.extname(normalizedPath).slice(1).toLowerCase()
-    return Boolean(ext) && FILE_EXTENSIONS.includes(ext)
-  }
-
-  async writePagesJSON() {
-    // 使用 lockfile 防止并发写入
-    let release: (() => Promise<void>) | null = null
-
-    try {
-      release = await lockfile.lock(this.options.outputJsonPath, {
-        retries: 0,
-        stale: 5000,
-      })
-    }
-    catch {
-      // 获取锁失败，则视为被占用，直接返回
+  private scheduleFlush() {
+    if (this.closed || this.flushTimer) {
       return
     }
 
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null
+      void this.requestDrain()
+    }, REGENERATE_DEBOUNCE_MS)
+  }
+
+  private hasPending(): boolean {
+    return this.fullScanRequested
+      || this.generateRequested
+      || this.dirty.size > 0
+      || this.removedDirs.size > 0
+  }
+
+  private requestDrain(): Promise<void> {
+    if (this.drainPromise) {
+      return this.drainPromise
+    }
+
+    const promise = this.drainLoop()
+      .catch((error) => {
+        console.error('[unplugin-uni-pages] generation failed.')
+        console.error(error instanceof Error ? error.message : `${error}`)
+      })
+      .finally(() => {
+        this.drainPromise = null
+        if (!this.closed && this.hasPending()) {
+          this.scheduleFlush()
+        }
+      })
+
+    this.drainPromise = promise
+    return promise
+  }
+
+  private async drainLoop(): Promise<void> {
+    while (!this.closed) {
+      const full = this.fullScanRequested
+      const generate = this.generateRequested
+      const dirty = this.dirty
+      const removedDirs = this.removedDirs
+      this.fullScanRequested = false
+      this.generateRequested = false
+      this.dirty = new Set()
+      this.removedDirs = new Set()
+
+      if (!full && !generate && dirty.size === 0 && removedDirs.size === 0) {
+        return
+      }
+
+      let relevant = full || generate
+
+      for (const dir of removedDirs) {
+        if (this.index.deleteUnder(dir)) {
+          relevant = true
+        }
+      }
+
+      try {
+        if (full) {
+          await this.fullScan()
+        }
+        else if (dirty.size > 0) {
+          relevant = (await this.reconcile(dirty)) || relevant
+        }
+
+        if (relevant) {
+          await this.generatePagesJSON()
+        }
+      }
+      catch (error) {
+        console.error('[unplugin-uni-pages] scan failed.')
+        console.error(error instanceof Error ? error.message : `${error}`)
+        return
+      }
+    }
+  }
+
+  private async fullScan(): Promise<void> {
+    const files = await collectScanFiles(this.options)
+    const entries = await loadScanEntries(files, this.scanLoadOptions())
+    this.index.replaceAll(entries.values())
+  }
+
+  private async reconcile(paths: Set<string>): Promise<boolean> {
+    const files = [...paths]
+    const existing = new Set(
+      await filterExactCase(files, this.options.scanDir),
+    )
+    const candidates = files.filter(
+      file => existing.has(file) && this.scope.isCandidate(file),
+    )
+    const entries = await loadScanEntries(candidates, this.scanLoadOptions())
+    let relevant = false
+
+    for (const file of files) {
+      const previous = this.index.get(file)
+      const next = existing.has(file) ? entries.get(file) : undefined
+
+      if (previous && previous.blocks.length > 0) {
+        relevant = true
+      }
+
+      if (!next) {
+        this.index.delete(file)
+        continue
+      }
+
+      if (next.blocks.length > 0) {
+        relevant = true
+      }
+      this.index.set(next)
+    }
+
+    return relevant
+  }
+
+  private scanLoadOptions(): LoadScanEntriesOptions {
+    return {
+      inputDir: this.options.inputDir,
+      filter: this.options.onScanPageFilter,
+      onError: (file, error) => {
+        console.error(
+          `[unplugin-uni-pages] ${error instanceof Error ? error.message : `${error}`} (${file})`,
+        )
+      },
+      onInvalidPart: (file, part) => {
+        console.warn(
+          `[unplugin-uni-pages] warning: invalid part "${part}" in route block of file ${file}. Expected "page", "subPackage", or "tabBar".`,
+        )
+      },
+    }
+  }
+
+  private async generatePagesJSON(): Promise<void> {
     try {
       const configPath = findConfigFile(
         this.options.configSource,
@@ -189,9 +435,6 @@ export class Context {
       })
       this.reportDiagnostics(parsed.diagnostics)
       this.assertNoErrors(parsed.diagnostics)
-
-      // 扫描页面
-      await this.scan()
 
       // 合并扫描结果（值树 + 以对象引用为键的注释索引）
       const pageMeta = parsed.value as PagesConfig
@@ -617,19 +860,7 @@ export class Context {
       this.assertNoErrors(validateRegions(placements, configOrder, configPath))
 
       const jsonStr = emitJSONC(pageMeta, comments, orderHints, emitOptions)
-      const isSame = await compareStringWithFile(jsonStr, this.options.outputJsonPath)
-      if (isSame) {
-        return
-      }
-
-      await atomicWriteFile(
-        this.options.outputJsonPath,
-        jsonStr,
-        { encoding: 'utf-8' },
-      )
-      // console.log(
-      //   `[unplugin-uni-pages] ${this.options.outputJsonPath} generated.`,
-      // )
+      await this.writeOutput(jsonStr)
     }
     catch (error) {
       console.log(
@@ -637,10 +868,35 @@ export class Context {
       )
       console.error(error instanceof Error ? error.message : `${error}`)
     }
-    finally {
-      if (release) {
+  }
+
+  private async writeOutput(jsonStr: string): Promise<void> {
+    const outputPath = this.options.outputJsonPath
+
+    try {
+      await fs.promises.mkdir(path.dirname(outputPath), { recursive: true })
+
+      const release = await lockfile.lock(outputPath, {
+        realpath: false,
+        retries: { retries: 3, factor: 2, minTimeout: 20, maxTimeout: 100 },
+        stale: 5000,
+      })
+
+      try {
+        const isSame = await compareStringWithFile(jsonStr, outputPath)
+        if (isSame) {
+          return
+        }
+
+        await atomicWriteFile(outputPath, jsonStr, { encoding: 'utf-8' })
+      }
+      finally {
         await release()
       }
+    }
+    catch (error) {
+      console.warn('[unplugin-uni-pages] failed to write pages.json.')
+      console.warn(error instanceof Error ? error.message : `${error}`)
     }
   }
 
@@ -694,83 +950,5 @@ export class Context {
     const pages = `export const pages = ${routes};`
     const subPackages = `export const subPackages = ${subRoutes};`
     return [pages, subPackages].join('\n')
-  }
-
-  async scan() {
-    // reset
-    this.scanPagesMap.clear()
-    this.scanSubPackagesMap.clear()
-    this.scanTabBarMap.clear()
-
-    if (!this.options.scanDir || this.options.scanDir.length === 0) {
-      return
-    }
-
-    const scanFiles: string[] = []
-    const ext = `**/*.${extsToGlob(FILE_EXTENSIONS)}`
-    this.options.scanDir.forEach((dir) => {
-      const files = globSync(ext, {
-        cwd: dir,
-        ignore: this.options.exclude,
-        absolute: true,
-        onlyFiles: true,
-      })
-      scanFiles.push(...files)
-    })
-
-    for (const file of scanFiles) {
-      try {
-        const code = await fs.promises.readFile(file, { encoding: 'utf-8' })
-        const sfc = parseSFC(code, { filename: file })
-        const routeBlocks = getRouteSfcBlock(sfc)?.map(
-          b => parseCustomBlock(b, file)!,
-        )
-        if (!routeBlocks || routeBlocks.length === 0) {
-          continue
-        }
-
-        // remove file extension and leading slash
-        const routePath = slash(
-          path.relative(this.options.inputDir, file),
-        ).replace(new RegExp(`\\.(${FILE_EXTENSIONS.join('|')})$`), '')
-
-        const onFilterResult = async (pagePath: string, filePath: string, blocks: ScanPageRouteBlock[]) => {
-          try {
-            if (this.options.onScanPageFilter) {
-              return await this.options.onScanPageFilter(pagePath, filePath, blocks)
-            }
-          }
-          catch {
-            return undefined
-          }
-        }
-
-        const filterResult = await onFilterResult(routePath, file, routeBlocks)
-        if (filterResult === false) {
-          continue
-        }
-
-        for (const block of routeBlocks) {
-          if (block.part === 'page') {
-            this.scanPagesMap.set(routePath, block)
-          }
-          else if (block.part === 'subPackage') {
-            this.scanSubPackagesMap.set(routePath, block)
-          }
-          else if (block.part === 'tabBar') {
-            this.scanTabBarMap.set(routePath, block)
-          }
-          else {
-            // 不符合要求的 part，输出警告
-            console.warn(
-              `[unplugin-uni-pages] warning: invalid part "${block.part}" in route block of file ${file}. Expected "page", "subPackage", or "tabBar".`,
-            )
-          }
-        }
-      }
-      catch (err: any) {
-        console.error(`[unplugin-uni-pages] ${err.message}`)
-      }
-    }
   }
 }

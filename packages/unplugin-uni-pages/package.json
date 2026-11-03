@@ -61,6 +61,7 @@
     "lint:fix": "pnpm run lint --fix",
     "build": "tsdown",
     "dev": "tsdown --watch",
+    "bench": "tsx bench/scan.bench.ts",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
@@ -72,11 +73,13 @@
     "@uni-aide/core": "workspace:^",
     "@vue/compiler-sfc": "3.4.21",
     "chokidar": "catalog:",
+    "picomatch": "catalog:",
     "proper-lockfile": "catalog:",
     "tinyglobby": "^0.2.15",
     "unplugin": "catalog:"
   },
   "devDependencies": {
+    "@types/picomatch": "catalog:",
     "@types/proper-lockfile": "catalog:",
     "vite": "catalog:",
     "webpack": "catalog:"

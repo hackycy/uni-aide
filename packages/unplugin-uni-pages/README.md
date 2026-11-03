@@ -104,6 +104,8 @@ export default defineConfig({
 
 然后在页面代码中自定义块用于路由数据，未定义自定义块的页面会被忽略
 
+> `onScanPageFilter(pagePath, filePath, blocks)` 用于按文件过滤扫描结果。该回调必须是纯函数：增量模式下只有变更的文件会重新调用（全量扫描时按文件顺序调用），配置变更不会重新调用；请不要修改传入的 `blocks`。
+
 ``` vue
 <!-- index.vue -->
 <!-- lang 设置解析器，仅支持解析JSON、JSON5、JSONC，默认为JSON -->
