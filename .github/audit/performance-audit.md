@@ -1,85 +1,179 @@
+# uni-aide 性能审计（2026-11-03 复审更新）
+
+> 复审基线：`3f4beff pref(pages): incremental scan with event-driven index`
+> 环境：Windows 11 / Node 24.18 / tsx；合成页面每个约 3.8KB，`pages.config.ts` 约 1.8KB；300 页与 1000 页两组。
+> 上一版的 P0（全量重扫）已落地并达标。本文档标注每项现状，并补充复审中新发现的问题。
+
+---
+
 # 一、三个包的职责与数据流
 
 **`@uni-aide/core`**（纯解析层，与插件无关）
 `parseConfig` = 读配置 → Babel 解析 AST → jiti 求值 → `normalizeValue` → `analyze`（AST 与运行时值对齐，捕获注释锚点、条件编译 region）→ `collectComments` / `buildCommentIndex`（注释侧表，以对象引用为 key）→ `validateRegions`。输出 `{ value, comments, orderHints, diagnostics }`。`emitJSONC` 按 orderHints 重新序列化并回填注释。
+注意：`evaluateConfig` 目前每次调用都新建 jiti 且 `fsCache:false, moduleCache:false`（`evaluate.ts:38-45`），配置的整个依赖图会在每次生成时重新执行。
 
 **`unplugin-uni-pages`**
-- `configResolved`/`webpack()`：`writePagesJSON()` = parseConfig → `scan()`（glob 扫描 `scanDir`，用 SFC 的 `<route>` 自定义块补充页面）→ 合并/排序/冲突检测 → 二次 region 校验 → emit → 比对后原子写。
-- `transform`：对每个 `.vue/.nvue/.uvue` 用 `parseSFC` 找 `<route>` 块并用 MagicString 删除。
-- `load('~uni-pages')`：读 `pages.json` 产出 `pages/subPackages` 虚拟模块。
-- watcher：chokidar 监听配置文件 + scanDir，**每个 add/change/unlink 事件都跑一整轮上述管线**。
+- `configResolved` / `webpack()`：`writePagesJSON()` 只在初始化触发**一次全量扫描**。
+- watcher：`add/change/unlink/unlinkDir` → `notifyFileEvent` / `notifyDirectoryRemoved` 写入 dirty 集合 → **30 ms 合并** → 串行 drain：`reconcile` 只读取/解析变更文件并更新 `ScanIndex`（按文件保存 route 块），需要时再 `generatePagesJSON`。
+- `generatePagesJSON`：每次重新 `parseConfig` → 合并扫描结果 → 排序 → region 校验 → emit → 比对后原子写（输出缺失时会创建）。配置变更复用索引，只重新生成。
+- `transform`：对每个 `.vue/.nvue/.uvue` 仍完整 `parseSFC` 查找 `<route>` 块并用 MagicString 删除。
+- `load('~uni-pages')`：读 `pages.json` 产出虚拟模块。
 
-**`unplugin-uni-manifest`**：只监听配置文件，事件 → `parseConfig` → emit → 比对 → 写文件，逻辑简单。
+**`unplugin-uni-manifest`**：只监听配置文件，事件 → `parseConfig` → emit → 比对 → 写文件。仍无防抖/队列，锁 `retries:0`，且不创建缺失的输出文件。
 
 ---
 
 # 二、实测数据
 
-环境：Windows 11 / Node 24 / tsx，合成页面每个 ~3.8KB，`pages.config.cts` 1.8KB。300 页与 1000 页两组：
+## 2.1 当前基准
 
-| 阶段 | 300 页 | 1000 页 | 说明 |
-|---|---:|---:|---|
-| **`writePagesJSON()`（一次事件全流程）** | **152 ms** | **1345 ms** | 开发时每次保存页面的实际成本 |
-| `scan()` | 139 ms | 1295 ms | 占总时间 92%~96% |
-| ├ globSync | 36 ms | 112 ms | 同步阻塞 |
-| ├ 顺序 readFile | 82 ms | 273 ms | 并行只需 13 / 45 ms |
-| ├ parseSFC | 0~3 ms* | ~600–850 ms* | *见下方 LRU 说明 |
-| └ 其它（map/过滤/块解析） | ~18 ms | ~80 ms | |
-| `parseConfig()` | 7.3 ms | 7.5 ms | 与页数无关 |
-| ├ 其中 jiti 求值（无缓存） | 7.5–8 ms | 同左 | **占 95%** |
-| ├ Babel 解析 | 0.2–0.3 ms | 同左 | |
-| └ 注释分析/对齐 | <0.5 ms | 同左 | |
-| 合并+排序+region 校验+emit+比对 | ~6 ms | ~42 ms | |
-| `manifest writeManifestJSON()` | 12.4 ms | 同左 | 输出文件存在时；jiti 仍占 8 ms |
-| `emitJSONC` / `walkCommentEntries` / `compareStringWithFile` | 0.05 / 0.01 / 0.15 ms | — | 完全不是瓶颈 |
-| transform 钩子（冷启动，每文件） | ~0.8–1.2 ms 解析 | 同左 | 1000 页冷启动额外 ~0.86 s |
-| transform 加 `code.includes('<route')` 守卫 | 0.001 ms/文件 | 同左 | ~800× 便宜 |
+| 阶段 | 300 页 | 1000 页 |
+|---|---:|---:|
+| 冷启动首次写（`writePagesJSON()`，含全量扫描） | 665 ms | 1341 ms |
+| 单页 change（median，不含 30 ms 防抖窗口） | 17.0 ms | 20.3 ms |
+| 配置 change（median） | 15.3 ms | 16.6 ms |
 
-\* **SFC 解析的超线性来自 Vue 自带缓存**：`@vue/compiler-sfc` 内部有 LRU(max=500) 的 parse 缓存（`compiler-sfc.cjs.js:1746`）。≤500 页时第二次扫描几乎全部命中缓存（300 页的 139ms 里解析≈0）；>500 页时每次扫描都在抖动淘汰，解析重新变回 0.6–0.8/文件，所以 3.3 倍页数带来 9.3 倍耗时。
+- 多次运行波动约 ±2 ms；`BENCH_STRICT=1` 通过（阈值 30 / 80 ms）。
+- 修复前对照：单页保存 152 ms（300 页）/ 1345 ms（1000 页）。**开发时每次保存的成本问题已解决**，原 `writePagesJSON` 的耗时现在只剩冷启动一次。
 
-**结论：core 本身很快（Babel+注释分析+发射合计 <1ms），性能问题几乎全部在插件的 I/O 编排上——每次事件全量扫描 + 每次求值不缓存。**
+## 2.2 冷启动拆分（1000 页）
 
----
+| 阶段 | 耗时 |
+|---|---:|
+| `collectScanFiles`（异步 tinyglobby） | 44.8 ms |
+| `loadScanEntries`（并发 32 读 + `parseSFC` + 块解析） | 1350.9 ms |
 
-# 三、瓶颈排序（按收益）
+同步 glob 已换为异步 glob，读文件已并发化；剩余时间几乎全部是 `@vue/compiler-sfc` 解析。由于 Vite 会 `await configResolved`，这 1.35 s 会直接推迟 dev server 启动。
 
-### P0 `scan()` 全量重扫（最大头，10–65× 收益）
-`context.ts:709-774`：每个事件都 `globSync` 整个 scanDir → **顺序** `await readFile` 每个文件 → 每个文件 `parseSFC`。而 chokidar 回调本来就带着变更文件路径（`handleFileChange(filePath)`，`context.ts:99`），目前这个路径只用来过滤、没有用于增量。
+## 2.3 配置求值（playground 真实配置 `pages.config.cts`）
 
-- 改为：启动时全扫一次；之后对 `add/change/unlink` 只读+解析该文件，更新 `scanPagesMap/scanSubPackagesMap/scanTabBarMap`（实测单文件 read+SFC+块解析仅 **0.31 ms**）。
-- 预期：300 页 152 → **~15 ms**；1000 页 1345 → **~50 ms**（剩余主要是 emit/排序）。
-- 若仍保留全扫路径：`Promise.all` 并发读（82→13 ms / 273→45 ms）、`globSync` 换异步 glob（避免阻塞事件循环）。
+| 方案 | 耗时 |
+|---|---:|
+| 现状：每次 `createJiti`，`fsCache:false, moduleCache:false` | 8.16 ms |
+| 复用 jiti 实例，`fsCache:false` | 6.74 ms |
+| 复用 jiti 实例，`fsCache:true`（推荐，语义安全） | 3.04 ms |
+| `moduleCache:true` 全缓存（不可直接使用，见 §四 R1） | 0.12 ms |
 
-### P1 配置解析不缓存（每个事件白付 7.5–8 ms）
-`context.ts:187` 每次 `writePagesJSON` 都重新 `parseConfig`；`evaluate.ts:38-45` 用 `fsCache:false, moduleCache:false` 且每次 `createJiti`。实测：
+`parseConfig` 全流程中位数 **10.4 ms**（含 Babel/analyze/comments），与页数无关。
 
-| 配置 | 当前 | `fsCache:true` | 全缓存 |
-|---|---:|---:|---:|
-| evaluateConfig | 8.0 ms | 3.6 ms | 0.57 ms |
+## 2.4 测试基线现状
 
-- watcher 本来就监听配置文件（`context.ts:71-97`），可以按文件内容/mtime 缓存 `ParseConfigResult`，只有配置变化时才重解析。
-- 注意 `moduleCache:false` 会让配置的整个依赖图**每次重新执行**——缓存整份结果同时也消除了重复副作用。
-- manifest 同理：12.4 → ~1 ms（改配置不频繁，优先级低于 pages）。
-
-### P1 watcher 无防抖、且锁冲突时直接丢弃事件
-`context.ts:93-108` + `context.ts:172-180`：`handleFileChange` 不 await，多个事件并发；`lockfile.lock(..., { retries: 0 })` 失败就 `return`。生成要 150 ms~1.3 s，这段窗口内的变更事件**被静默丢弃，也不会补跑**（git checkout、多文件保存时最终产物可能过期）。建议：30~50 ms 防抖 + "生成中置脏标记、结束后补跑一轮"，顺带合并掉突发事件。
-
-### P2 transform 钩子对每个 SFC 做完整解析
-`unplugin.ts:27-44`：`enforce:'pre'`，每个 `.vue/.nvue/.uvue` 都 `parseSFC`（冷启动 0.8–1.2 ms/文件，1000 页 ≈0.86 s），只为了找 `<route>`；随后 Vue 插件还要再解析一遍。而且我们的解析会占用同一个 500 条 LRU，**项目 >500 页时会把 Vue 自己的缓存条目挤掉**，放大二次解析成本。
-
-- 最低成本修复：`if (!code.includes('<route')) return null`，无 route 块的组件（通常占多数）零解析成本。
-- 更进一步：扫描/提取只需要自定义块，可用轻量块提取替代完整 SFC 解析（实测块解析 ~0.01 ms/文件），transform 仍保留 MagicString+sourcemap（20 ms/300 文件，可接受）。
-
-### P3 排序/合并的二次复杂度（1000 页时 ~40 ms 残留的一部分）
-`context.ts:521-559` 排序比较器里 `tabBar.list.find` + `indexOf`；`context.ts:452-470` 每个扫描路径都对 `subPackages` 做 `findIndex`（O(N·P)）。预建 `Map<path, item>` 即可线性化。优先级低。
+- `@uni-aide/unplugin-uni-pages`：51/51 通过。
+- `@uni-aide/unplugin-manifest`：5/5 通过。
+- `@uni-aide/core`：Windows 下 9 个 golden 用例全部失败；换行统一为 LF 后仍有 4 个失败（`conditional` / `dynamic` / `define-config` / `cjs`）。原因见 §五.3。
+- 在修复 golden 基线前，不宜把「测试全绿」作为后续性能改动的验收标准。
 
 ---
 
-# 四、顺带发现的非性能问题（会影响正确性，建议单独处理）
+# 三、上一版审计的修复状态
 
-1. **输出文件不存在时静默不生成**：实测 `proper-lockfile` 对不存在的目标文件抛 `ENOENT`（它先 `realpath`），两个插件都 `catch { return }`（`pages/context.ts:176-180`、`manifest/context.ts:90-94`）。新建项目或删掉 `pages.json` 后迁移到 `pages.config.ts` 时，插件会**什么都不做且无任何提示**。测试 helpers 预先创建了输出文件，掩盖了这个问题。
-2. **使用包导出的 `defineConfig` 时配置注释全部丢失**：`analyze.ts:397-400` 把 import/require 来的函数调用视为 opaque，导致整个配置对象不可对齐。实测对比——本地定义的 `defineConfig` 注释完整保留；`import { defineConfig } from '@uni-aide/unplugin-uni-pages'`（README 推荐写法）输出的 JSON 无任何注释，仅条件编译指令会打印 `directive-unresolved` 警告。golden 用例只覆盖了本地 `defineConfig`，所以测试没发现。当前 `playground/src/pages.json` 里的注释是旧版本产物，不能作为现状证据。
-3. **chokidar v4 已移除 glob 支持**（README v4 迁移说明），`ignored: this.options.exclude` 传入的 glob 字符串在 watcher 中不生效——排除目录仍会被监听并触发全量重生成（与 P0 叠加）。
-4. `writePagesJSON` 里 `findConfigFile` 被调了两次（`context.ts:183` 和 core 内部），可忽略。
+| 上一版条目 | 状态 | 说明 |
+|---|---|---|
+| P0 `scan()` 全量重扫 | ✅ 已修复 | 增量索引 + 30 ms 合并 + 串行队列，数据见 2.1 |
+| P1 配置解析不缓存 | ❌ 仍在 | 每次生成仍 `parseConfig`，见 §四 R1 |
+| P1 watcher 无防抖 / 锁冲突丢事件 | ⚠️ 部分修复 | pages 已修复；manifest 仍无防抖且 `retries:0` |
+| P2 transform 每个 SFC 完整解析 | ❌ 仍在 | 仍无 `includes('<route')` 守卫 |
+| P3 排序/合并二次复杂度 | ❌ 仍在 | 现在整轮仅 20 ms，影响已小 |
+| 非性能 1 输出缺失时静默不生成 | ⚠️ 部分修复 | pages 已修复；manifest 仍在 |
+| 非性能 2 `defineConfig` 注释丢失 | ❌ 仍在，且范围更大 | CJS `require` 解构同样失效 |
+| 非性能 3 chokidar v4 不支持 glob `ignored` | ✅ 已修复 | 改为 `ignored` 函数 + picomatch，含目录剪枝 |
+| 非性能 4 `findConfigFile` 两次 | ❌ 仍在 | 纯 `existsSync`，可忽略 |
 
-如果只做两件事，我建议：**增量扫描 + 配置结果缓存**，能把开发时每次保存的 152 ms/1345 ms 降到 ~15 ms/~50 ms。需要的话我可以按这个顺序做一版实现（先补性能基准测试作为验收标准）。
+---
+
+# 四、仍存在的性能问题（按收益排序）
+
+### R1 配置解析不缓存（每个事件白付 8–10 ms）
+
+`context.ts:433` 每次 `generatePagesJSON` 都重新 `parseConfig`；`evaluate.ts:38-45` 每次新建 jiti 且关闭缓存，配置依赖图在每次保存时都会**重新执行**（包括副作用）。manifest 同理。
+
+- 零风险第一步：复用 jiti 实例 + `fsCache:true`，求值 8.16 → **3.04 ms**（见 2.3）。
+- ⚠️ **不能直接缓存整份 `ParseConfigResult`**：`generatePagesJSON` 会原地修改 `parsed.value`、`comments`、`orderHints`（`mergeScanContent`、`pushInjectedElement`、`indexScanComments`）。直接复用会让上一轮注入的扫描页面残留，删除页面后也不会消失。完整缓存需要先把合并改成不可变，或深拷贝值后重新跑 `analyze`/`collectComments`。
+
+### R2 manifest 仍缺防抖/队列/锁重试，且不创建缺失输出
+
+- `manifest/context.ts:52-58`：每个 `change/unlink` 直接 `writeManifestJSON`，无防抖；并发事件时后到的会被丢弃。
+- `manifest/context.ts:86-94`：`retries:0`，锁冲突直接 `return`，本次变更静默丢失。
+- 默认 `realpath:true` 且未 `mkdir`：输出文件不存在时 `proper-lockfile` 抛 `ENOENT`，被 catch 吞掉——**新建项目或删掉 `manifest.json` 后，插件什么都不做且无提示**（已用临时项目复现：`output exists: false`）。
+- 建议直接复用 pages 的 `writeOutput` 逻辑（`mkdir` + `realpath:false` + 重试），并加同样的 30 ms 合并/脏标记。
+
+### R3 transform 钩子仍全量解析 SFC
+
+`unplugin.ts:27-44`：`enforce:'pre'`，每个 `.vue/.nvue/.uvue` 都 `parseSFC`，只为找 `<route>`；冷启动 0.8–1.2 ms/文件。
+
+两者共享 `@vue/compiler-sfc` 的 LRU(max=500)。其缓存 key 包含完整 source + options（`compiler-sfc.cjs.js:1811-1825`），我们的 `pad:'space'` 与 Vue 插件自身的解析选项不同，因此**不会命中 Vue 的缓存条目，反而会挤掉它们**；项目 >500 页时放大二次解析成本。
+
+- 最低成本修复：`if (!code.includes('<route')) return null`，无 route 的组件零解析成本。
+- 冷启动进一步优化：用轻量自定义块提取替代完整 SFC 解析（1000 页冷启动 1.35 s 的主要成本）。
+
+### R4 排序/合并的二次复杂度（低优先）
+
+- `context.ts:521-533`、`context.ts:764-802`：排序比较器里对每个 page 做 `tabBar.list.find` + `indexOf`（O(N·logN·T)）。
+- `context.ts:695-703`：每个扫描分包路径都对 `subPackages` 做 `findIndex`（O(N·P)）。
+- 1000 页整轮已经只有 20 ms，暂不构成瓶颈；预建 `Map<path, item>` 即可线性化。
+
+### R5 模板/样式改动仍触发整轮生成（复审新增）
+
+`reconcile` 只要旧/新文件有 route 块就置 `relevant=true`（`context.ts:392-405`），**不比较 route 内容**。实际开发中多数保存只改模板/样式，但仍要付 17–20 ms。
+
+建议比较变更前后的 route 块**原文**（`comment-json` 的注释以 symbol 保存，不能只比 `JSON.stringify`），未变则跳过生成。
+
+---
+
+# 五、正确性问题（建议单独处理）
+
+1. **`defineConfig` 注释全部丢失（README 推荐写法）**
+   - ESM `import { defineConfig } from '@uni-aide/unplugin-uni-pages'` 与 CJS `const { defineConfig } = require(...)` 都失效。
+   - `collectBindings`（`core/analyze.ts:133-168`）只记录 `ImportDeclaration`，不识别 require 解构；`resolveCall`（`core/analyze.ts:397-400`）把所有导入标识符视为 opaque，整个配置对象无法对齐。
+   - 实测 playground：`pages.config.cts` 与 `manifest.config.ts` 的输出均 **0 行注释**；pages 侧仅产生 6 条 `directive-unresolved` 警告。golden 只覆盖了本地定义的 `defineConfig`。
+   - 建议：记录 imported name + source 与 require 解构；对 `defineConfig` 这类单对象参数调用按 identity 对齐；补 ESM/CJS 两个 golden 用例。
+
+2. **manifest 输出缺失时不生成**：见 §四 R2，已复现。两个插件的测试 helpers 都预先创建了输出文件，因此现有测试没有覆盖该场景。
+
+3. **core golden 测试基线失真**
+   - Windows 当前 checkout 下 `core.autocrlf=true` 且仓库没有 `.gitattributes`，expected 被检出为 CRLF，而 emitter 输出 LF → 9 个 golden 全部失败。
+   - 把源文件和 expected 统一为 LF 后，仍有 4 个失败（`conditional` / `dynamic` / `define-config` / `cjs`）：expected 在「最后一个子节点后跟 `#endif`」时没有逗号，而 `emit.ts:247-278` 的 `hasAfterLast` 逻辑刻意补逗号。实现注释与基线相互矛盾，需要确认预期行为后统一。
+   - 建议：添加 `.gitattributes`（至少 fixtures 固定 `eol=lf`），并重新生成或修正这 4 个基线。
+
+4. **全量扫描失败后不会重试**
+   `drainLoop` 在循环开头清空 `fullScanRequested`，`fullScan()` 抛异常（如临时 EACCES、glob 错误）后只打印日志并 `return`（`context.ts:328-368`）。后续文件事件只做局部 reconcile，索引可能长期不完整，直到 watcher error 或重启。
+
+5. **webpack watch 的启动顺序与 vite 不一致**
+   vite 已改为「先挂 watcher 再首扫」，webpack 仍是先 `writePagesJSON()` 再 `setupWatcher()`（`unplugin.ts:68-80`），首扫窗口（1000 页约 1.3 s）内的变更会被丢弃。
+
+6. **启动时 scanDir 不存在 → 后续创建不触发事件**
+   chokidar v4 对不存在的 watch target 不会监视父目录。实测：先 `setupWatcher`（`src/pages` 不存在），再创建 `src/pages/later/index.vue`，等待 2 s 后 pages.json 仍不包含该页面。可监听最近存在的祖先目录，出现后重新 `setupWatcher()`。
+
+7. **配置文件改名/换后缀后 watcher 仍盯旧路径**
+   `notifyFileEvent` 只和缓存的 `this.configPath` 比较（`context.ts:177-181`），`setupWatcher` 只在 `configResolved` 调用一次。`pages.config.ts → pages.config.cts`（git 切换分支）会触发生成，但新文件的后续编辑不再被监听。
+
+8. **manifest 细节**：`close()` 未 await `stopWatcher()`（`manifest/context.ts:77-79`）；watcher 未监听 `add`。
+
+9. `findConfigFile` 在生成路径中调两次（`context.ts:429` + core 内部），纯 `existsSync`，可忽略。
+
+---
+
+# 六、建议修复顺序
+
+1. `defineConfig`（ESM + CJS require）注释丢失 —— README 主路径，正确性优先
+2. manifest 对齐 pages：缺失输出创建、防抖/脏标记、锁重试
+3. 修复 golden 基线 + 添加 `.gitattributes` —— 让测试重新可信
+4. 配置求值缓存：先只做「复用 jiti + `fsCache:true`」（8.16 → 3.04 ms）；完整结果缓存需先去原地修改
+5. transform 加 `includes('<route')` 守卫；冷启动上轻量块提取
+6. route 内容比较，跳过模板类改动
+7. 其余：全量扫描失败重试、webpack 顺序、scanDir 后创建、配置改名、排序线性化
+
+---
+
+# 附：复现命令
+
+```bash
+# 基准（BENCH_STRICT=1 时超过 30/80 ms 会返回非零退出码）
+pnpm --filter @uni-aide/unplugin-uni-pages bench
+BENCH_STRICT=1 pnpm --filter @uni-aide/unplugin-uni-pages bench
+
+# 测试
+pnpm --filter @uni-aide/core exec vitest run
+pnpm --filter @uni-aide/unplugin-uni-pages exec vitest run
+pnpm --filter @uni-aide/unplugin-uni-manifest exec vitest run
+```
