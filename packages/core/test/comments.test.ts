@@ -172,3 +172,133 @@ export default { list }
     expect(codes(result)).toContain('array-reordered-unverifiable')
   })
 })
+
+describe('identity wrapper calls', () => {
+  it('aligns comments through an imported defineConfig (ESM)', async () => {
+    await withFixture(
+      {
+        'wrapper.ts': `export function defineConfig(config: any) {
+  return config
+}
+`,
+        'pages.config.ts': `import { defineConfig } from './wrapper'
+
+export default defineConfig({
+  // config comment
+  pages: [
+    {
+      path: 'pages/index/index',
+      // #ifdef H5
+      style: { navigationStyle: 'custom' },
+      // #endif
+    },
+  ],
+})
+`,
+      },
+      async (dir) => {
+        const result = await parseConfig('pages.config', { cwd: dir })
+        expect(result.value).toEqual({
+          pages: [{ path: 'pages/index/index', style: { navigationStyle: 'custom' } }],
+        })
+        expect(codes(result)).toEqual([])
+        await expect(parse('pages.config', { cwd: dir })).resolves.toBe(`{
+  // config comment
+  "pages": [
+    {
+      "path": "pages/index/index",
+      // #ifdef H5
+      "style": {
+        "navigationStyle": "custom"
+      },
+      // #endif
+    }
+  ]
+}`)
+      },
+    )
+  })
+
+  it('aligns comments through a required defineConfig (CJS destructuring)', async () => {
+    await withFixture(
+      {
+        'wrapper.cjs': `module.exports = { defineConfig(config) { return config } }
+`,
+        'pages.config.cts': `// eslint-disable-next-line ts/no-require-imports
+const { defineConfig } = require('./wrapper.cjs')
+
+module.exports = defineConfig({
+  // cjs comment
+  pages: [{ path: 'pages/index/index' }],
+})
+`,
+      },
+      async (dir) => {
+        const result = await parseConfig('pages.config', { cwd: dir })
+        expect(codes(result)).toEqual([])
+        await expect(parse('pages.config', { cwd: dir })).resolves.toBe(`{
+  // cjs comment
+  "pages": [
+    {
+      "path": "pages/index/index"
+    }
+  ]
+}`)
+      },
+    )
+  })
+
+  it('does not align when the unresolved wrapper does not forward the argument', async () => {
+    await withFixture(
+      {
+        'wrapper.ts': `export function defineConfig(config: any) {
+  return { ...config, injected: true }
+}
+`,
+        'pages.config.ts': `import { defineConfig } from './wrapper'
+
+export default defineConfig({
+  // #ifdef H5
+  pages: [{ path: 'pages/index/index' }],
+  // #endif
+})
+`,
+      },
+      async (dir) => {
+        const result = await parseConfig('pages.config', { cwd: dir })
+        expect(codes(result)).toContain('directive-unresolved')
+        await expect(parse('pages.config', { cwd: dir })).resolves.toBe(`{
+  "pages": [
+    {
+      "path": "pages/index/index"
+    }
+  ],
+  "injected": true
+}`)
+      },
+    )
+  })
+
+  it('keeps ambiguous local wrappers opaque', async () => {
+    await withFixture(
+      {
+        'pages.config.ts': `function wrap(config: any) {
+  if (config.path) {
+    return config
+  }
+  return config
+}
+export default wrap({
+  // should be dropped
+  path: 'pages/index/index',
+})
+`,
+      },
+      async (dir) => {
+        const result = await parseConfig('pages.config', { cwd: dir })
+        expect(codes(result)).toContain('ambiguous-return')
+        await expect(parse('pages.config', { cwd: dir })).resolves.not.toContain('should be dropped')
+      },
+    )
+  })
+})

@@ -740,11 +740,24 @@ function align(
 
     case 'CallExpression': {
       const resolved = resolveCall(node, runtime, ctx)
-      if (!resolved || resolved.ambiguous) {
-        opaque(ctx, node)
+      if (resolved && !resolved.ambiguous) {
+        align(resolved.node, runtime, path, ctx, depth + 1)
         return
       }
-      align(resolved.node, runtime, path, ctx, depth + 1)
+      // 未解析的单参数调用可能是 identity 包装器（导入或 require 的 defineConfig）。
+      // 仅当实参与求值结果结构指纹一致时才对齐，避免把注释挂到无关对象上。
+      if (!resolved && node.arguments.length === 1) {
+        const argument = node.arguments[0]
+        if (
+          argument.type !== 'SpreadElement'
+          && argument.type !== 'ArgumentPlaceholder'
+          && fingerprintMatches(argument, runtime, ctx)
+        ) {
+          align(argument, runtime, path, ctx, depth + 1)
+          return
+        }
+      }
+      opaque(ctx, node)
       return
     }
 
