@@ -1,6 +1,8 @@
 import type { Diagnostic } from '@uni-aide/core'
 import type { FSWatcher } from 'chokidar'
 import type { Options, ResolvedOptions } from '../types'
+import fs from 'node:fs'
+import path from 'node:path'
 import process from 'node:process'
 import {
   atomicWriteFile,
@@ -15,11 +17,17 @@ import lockfile from 'proper-lockfile'
 import { MANIFEST_CONFIG_FILE } from './constants'
 import { resolveOptions } from './options'
 
+const REGENERATE_DEBOUNCE_MS = 30
+
 export class Context {
   options: ResolvedOptions
   root: string = process.cwd()
 
   private watcher: FSWatcher | null = null
+  private generateRequested = false
+  private drainPromise: Promise<void> | null = null
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+  private closed = false
 
   constructor(private rawOptions: Options) {
     this.options = resolveOptions(this.rawOptions, this.root)
@@ -35,6 +43,10 @@ export class Context {
   }
 
   setupWatcher() {
+    if (this.closed) {
+      return
+    }
+
     const sourceConfigPath = findConfigFile(this.options.configSource, MANIFEST_CONFIG_FILE)
     if (!sourceConfigPath) {
       this.stopWatcher()
@@ -49,12 +61,9 @@ export class Context {
       ignoreInitial: true, // Don't fire events for initial add
     })
 
-    const handleFileChange = async () => {
-      await this.writeManifestJSON()
-    }
-
-    this.watcher.on('change', handleFileChange)
-    this.watcher.on('unlink', handleFileChange)
+    this.watcher.on('add', () => this.notifyConfigEvent())
+    this.watcher.on('change', () => this.notifyConfigEvent())
+    this.watcher.on('unlink', () => this.notifyConfigEvent())
   }
 
   private async stopWatcher() {
@@ -75,24 +84,99 @@ export class Context {
   }
 
   async close() {
-    this.stopWatcher()
+    this.closed = true
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+
+    await this.stopWatcher()
+    if (this.drainPromise) {
+      await this.drainPromise
+    }
   }
 
-  async writeManifestJSON() {
-    // 使用 lockfile 防止并发写入
-    let release: (() => Promise<void>) | null = null
-
-    try {
-      release = await lockfile.lock(this.options.outputJsonPath, {
-        retries: 0,
-        stale: 5000,
-      })
-    }
-    catch {
-      // 获取锁失败，则视为被占用，直接返回
+  /** @internal */
+  notifyConfigEvent() {
+    if (this.closed) {
       return
     }
 
+    this.generateRequested = true
+    this.scheduleFlush()
+  }
+
+  /** @internal */
+  async flush() {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+
+    while (!this.closed) {
+      if (this.drainPromise) {
+        await this.drainPromise
+      }
+      else if (this.generateRequested) {
+        await this.requestDrain()
+      }
+      else {
+        break
+      }
+    }
+  }
+
+  async writeManifestJSON() {
+    this.generateRequested = true
+    await this.flush()
+  }
+
+  private scheduleFlush() {
+    if (this.closed || this.flushTimer) {
+      return
+    }
+
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null
+      void this.requestDrain()
+    }, REGENERATE_DEBOUNCE_MS)
+  }
+
+  private requestDrain(): Promise<void> {
+    if (this.drainPromise) {
+      return this.drainPromise
+    }
+
+    const promise = this.drainLoop()
+      .catch((error) => {
+        console.error('[unplugin-uni-manifest] generation failed.')
+        console.error(error instanceof Error ? error.message : `${error}`)
+      })
+      .finally(() => {
+        this.drainPromise = null
+        if (!this.closed && this.generateRequested) {
+          this.scheduleFlush()
+        }
+      })
+
+    this.drainPromise = promise
+    return promise
+  }
+
+  private async drainLoop(): Promise<void> {
+    while (!this.closed) {
+      const generate = this.generateRequested
+      this.generateRequested = false
+
+      if (!generate) {
+        return
+      }
+
+      await this.generateManifestJSON()
+    }
+  }
+
+  private async generateManifestJSON(): Promise<void> {
     try {
       const parsed = await parseConfig(MANIFEST_CONFIG_FILE, {
         cwd: this.options.configSource,
@@ -102,22 +186,41 @@ export class Context {
       this.assertNoErrors(diagnostics)
 
       const jsonStr = emitJSONC(parsed.value, parsed.comments, parsed.orderHints)
-      const isSame = await compareStringWithFile(jsonStr, this.options.outputJsonPath)
-      if (isSame) {
-        return
-      }
-
-      await atomicWriteFile(this.options.outputJsonPath, jsonStr, { encoding: 'utf-8' })
-      // console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generated.`)
+      await this.writeOutput(jsonStr)
     }
     catch (error) {
       console.log(`[unplugin-uni-manifest] ${this.options.outputJsonPath} generation failed.`)
       console.error(error instanceof Error ? error.message : `${error}`)
     }
-    finally {
-      if (release) {
+  }
+
+  private async writeOutput(jsonStr: string): Promise<void> {
+    const outputPath = this.options.outputJsonPath
+
+    try {
+      await fs.promises.mkdir(path.dirname(outputPath), { recursive: true })
+
+      const release = await lockfile.lock(outputPath, {
+        realpath: false,
+        retries: { retries: 3, factor: 2, minTimeout: 20, maxTimeout: 100 },
+        stale: 5000,
+      })
+
+      try {
+        const isSame = await compareStringWithFile(jsonStr, outputPath)
+        if (isSame) {
+          return
+        }
+
+        await atomicWriteFile(outputPath, jsonStr, { encoding: 'utf-8' })
+      }
+      finally {
         await release()
       }
+    }
+    catch (error) {
+      console.warn('[unplugin-uni-manifest] failed to write manifest.json.')
+      console.warn(error instanceof Error ? error.message : `${error}`)
     }
   }
 
