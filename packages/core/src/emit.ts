@@ -244,9 +244,7 @@ function emitObject(
 
   const childPrefix = indent(depth + 1)
   const lines: string[] = ['{']
-  // 容器末尾的独占行注释（after-last）跟随在最后一个普通子节点之后；
-  // golden 基线要求此时保留该子节点后的逗号，闭合括号前一 token 仍不是逗号。
-  const hasAfterLast = (container?.afterLast?.length ?? 0) > 0
+  // after-last 是注释而非容器成员，不能据此补逗号；末尾指令行被预处理剥离后会留下尾逗号。
 
   allKeys.forEach((key, position) => {
     const slots = comments.property.get(object)?.get(key)
@@ -273,7 +271,7 @@ function emitObject(
       line += ` ${afterValue.text}`
     }
 
-    if (!isLast || (hasAfterLast && position === keys.length - 1)) {
+    if (!isLast) {
       line += ','
     }
 
@@ -320,7 +318,6 @@ function emitArray(
   const childPrefix = indent(depth + 1)
   const lines: string[] = ['[']
   const total = normal.length + injected.length
-  const hasAfterLast = (container?.afterLast?.length ?? 0) > 0
   let position = 0
 
   const emitItem = (item: ArrayItem): void => {
@@ -337,7 +334,7 @@ function emitArray(
       line += ` ${afterValue.text}`
     }
 
-    if (!isLast || (hasAfterLast && position === normal.length)) {
+    if (!isLast) {
       line += ','
     }
 

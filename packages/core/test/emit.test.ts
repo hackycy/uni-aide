@@ -97,17 +97,17 @@ describe('emitJSONC', () => {
   },
   "list": [
     // inner
-  ],
+  ]
   // end
 }`)
   })
 
-  it('keeps a comma before after-last comments', () => {
+  it('does not add a trailing comma before after-last comments', () => {
     const value = { a: 1 }
     const index = createCommentIndex()
     index.container.set(value, { afterLast: [entry(' end')] })
     expect(emit(value, index)).toBe(`{
-  "a": 1,
+  "a": 1
   // end
 }`)
   })

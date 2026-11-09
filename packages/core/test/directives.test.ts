@@ -40,7 +40,7 @@ describe('conditional directives', () => {
       async (dir) => {
         await expect(parse('pages.config', { cwd: dir })).resolves.toBe(`{
   // #ifdef H5 || MP-WEIXIN
-  "a": 1,
+  "a": 1
   // #endif
 }`)
       },

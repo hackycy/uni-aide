@@ -1,0 +1,2 @@
+# golden 用例与 emitJSONC 的 LF 输出逐字节比较；固定 LF，避免 Windows autocrlf 造成基线漂移。
+packages/core/test/fixtures/golden/** text eol=lf

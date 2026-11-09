@@ -25,7 +25,8 @@ describe('golden: 配置注释还原（L1）', () => {
       const expected = readFileSync(
         resolve(expectedDir, `${name}.jsonc`),
         'utf-8',
-      )
+      ).replace(/\r\n/g, '\n')
+      // 只归一化 expected：兼容 Windows 检出/导出；actual 不归一化，emitter 的 CRLF 回归仍会失败。
       // emitJSONC 不输出尾随换行；expected 文件以单个换行结尾。
       expect(`${actual}\n`).toBe(expected)
     })

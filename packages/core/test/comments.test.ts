@@ -210,7 +210,7 @@ export default defineConfig({
       // #ifdef H5
       "style": {
         "navigationStyle": "custom"
-      },
+      }
       // #endif
     }
   ]
