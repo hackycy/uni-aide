@@ -1,5 +1,6 @@
 import type { SFCBlock, SFCDescriptor, SFCParseOptions } from '@vue/compiler-sfc'
 import type { ScanPageRouteBlock } from '../types'
+import type { SfcBlockSource } from './route-block'
 import { jsoncParse } from '@uni-aide/core'
 import { parse as VueParser } from '@vue/compiler-sfc'
 
@@ -57,7 +58,7 @@ export function forbiddenOverwritePagePath(obj: Record<string, any>, key: 'path'
   return obj
 }
 
-export function parseCustomBlock(block: SFCBlock, filePath: string): ScanPageRouteBlock | null {
+export function parseCustomBlock(block: SfcBlockSource, filePath: string): ScanPageRouteBlock | null {
   if (!block) {
     return null
   }

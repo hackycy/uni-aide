@@ -29,6 +29,10 @@ export const unpluginFactory: UnpluginFactory<Options | undefined> = (
         return null
       }
 
+      if (!code.includes('<route')) {
+        return null
+      }
+
       const sfc = parseSFC(code, { filename: id })
       const routeBlocks = getRouteSfcBlock(sfc)
 

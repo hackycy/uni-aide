@@ -35,6 +35,7 @@
 
 - 多次运行波动约 ±2 ms；`BENCH_STRICT=1` 通过（阈值 30 / 80 ms）。
 - 修复前对照：单页保存 152 ms（300 页）/ 1345 ms（1000 页）。**开发时每次保存的成本问题已解决**，原 `writePagesJSON` 的耗时现在只剩冷启动一次。
+- 上表为 R3 修复前的 Windows 基线；R3 修复后的 macOS 复测数据见 §三「R3 修复详情」。
 
 ## 2.2 冷启动拆分（1000 页）
 
@@ -58,7 +59,7 @@
 
 ## 2.4 测试基线现状
 
-- `@uni-aide/unplugin-uni-pages`：51/51 通过。
+- `@uni-aide/unplugin-uni-pages`：92/92 通过（新增 41 个 route 块提取等价性与 transform 守卫测试）。
 - `@uni-aide/unplugin-manifest`：5/5 通过。
 - `@uni-aide/core`：Windows 下 9 个 golden 用例全部失败；换行统一为 LF 后仍有 4 个失败（`conditional` / `dynamic` / `define-config` / `cjs`）。原因见 §五.3。
 - 在修复 golden 基线前，不宜把「测试全绿」作为后续性能改动的验收标准。
@@ -72,12 +73,21 @@
 | P0 `scan()` 全量重扫 | ✅ 已修复 | 增量索引 + 30 ms 合并 + 串行队列，数据见 2.1 |
 | P1 配置解析不缓存 | ❌ 仍在 | 每次生成仍 `parseConfig`，见 §四 R1 |
 | P1 watcher 无防抖 / 锁冲突丢事件 | ⚠️ 部分修复 | pages 已修复；manifest 仍无防抖且 `retries:0` |
-| P2 transform 每个 SFC 完整解析 | ❌ 仍在 | 仍无 `includes('<route')` 守卫 |
+| P2 transform 每个 SFC 完整解析 | ✅ 已修复 | 已加 `includes('<route')` 守卫；冷启动扫描改用轻量块提取 |
 | P3 排序/合并二次复杂度 | ❌ 仍在 | 现在整轮仅 20 ms，影响已小 |
 | 非性能 1 输出缺失时静默不生成 | ⚠️ 部分修复 | pages 已修复；manifest 仍在 |
 | 非性能 2 `defineConfig` 注释丢失 | ❌ 仍在，且范围更大 | CJS `require` 解构同样失效 |
 | 非性能 3 chokidar v4 不支持 glob `ignored` | ✅ 已修复 | 改为 `ignored` 函数 + picomatch，含目录剪枝 |
 | 非性能 4 `findConfigFile` 两次 | ❌ 仍在 | 纯 `existsSync`，可忽略 |
+
+### R3 transform 钩子与冷启动扫描（✅ 已修复）
+
+`unplugin.ts:27-44` 原为 `enforce:'pre'` 且每个 `.vue/.nvue/.uvue` 都 `parseSFC`，只为找 `<route>`；`readScanFile` 命中 `<route` 后也完整解析，1000 页冷启动 1.35 s 的主要成本来自这里。
+
+- transform：增加 `if (!code.includes('<route')) return null` 守卫，无 route 的组件零解析成本；含 route 的文件仍走 `parseSFC`（`loc` 删除语义不变）。
+- 冷启动：新增 `core/route-block.ts` 轻量顶层块提取器，只读取 `<route>` 的 `lang` / `attrs` / `content`，行为对齐 `@vue/compiler-sfc@3.4.21`（含 `template lang` RCDATA、`ignoreEmpty`、未闭合块、属性状态机等边界），由 41 个等价性/守卫测试锁定。
+- 复测（macOS / Darwin 25.5 / Node 24.16；与本文 Windows 基线环境不同）：300 页 cold 268.8 → 89.2–99.1 ms，1000 页 522.4 → 63.8–66.2 ms；change/config 6.9–8.8 / 5.9–7.9 ms；`BENCH_STRICT=1` 通过。
+- 共享 LRU 的副作用随之消失：扫描不再调用 `parseSFC`，只有 transform 对含 route 的模块解析。
 
 ---
 
@@ -96,15 +106,6 @@
 - `manifest/context.ts:86-94`：`retries:0`，锁冲突直接 `return`，本次变更静默丢失。
 - 默认 `realpath:true` 且未 `mkdir`：输出文件不存在时 `proper-lockfile` 抛 `ENOENT`，被 catch 吞掉——**新建项目或删掉 `manifest.json` 后，插件什么都不做且无提示**（已用临时项目复现：`output exists: false`）。
 - 建议直接复用 pages 的 `writeOutput` 逻辑（`mkdir` + `realpath:false` + 重试），并加同样的 30 ms 合并/脏标记。
-
-### R3 transform 钩子仍全量解析 SFC
-
-`unplugin.ts:27-44`：`enforce:'pre'`，每个 `.vue/.nvue/.uvue` 都 `parseSFC`，只为找 `<route>`；冷启动 0.8–1.2 ms/文件。
-
-两者共享 `@vue/compiler-sfc` 的 LRU(max=500)。其缓存 key 包含完整 source + options（`compiler-sfc.cjs.js:1811-1825`），我们的 `pad:'space'` 与 Vue 插件自身的解析选项不同，因此**不会命中 Vue 的缓存条目，反而会挤掉它们**；项目 >500 页时放大二次解析成本。
-
-- 最低成本修复：`if (!code.includes('<route')) return null`，无 route 的组件零解析成本。
-- 冷启动进一步优化：用轻量自定义块提取替代完整 SFC 解析（1000 页冷启动 1.35 s 的主要成本）。
 
 ### R4 排序/合并的二次复杂度（低优先）
 
@@ -159,9 +160,8 @@
 2. manifest 对齐 pages：缺失输出创建、防抖/脏标记、锁重试
 3. 修复 golden 基线 + 添加 `.gitattributes` —— 让测试重新可信
 4. 配置求值缓存：先只做「复用 jiti + `fsCache:true`」（8.16 → 3.04 ms）；完整结果缓存需先去原地修改
-5. transform 加 `includes('<route')` 守卫；冷启动上轻量块提取
-6. route 内容比较，跳过模板类改动
-7. 其余：全量扫描失败重试、webpack 顺序、scanDir 后创建、配置改名、排序线性化
+5. route 内容比较，跳过模板类改动
+6. 其余：全量扫描失败重试、webpack 顺序、scanDir 后创建、配置改名、排序线性化
 
 ---
 

@@ -7,11 +7,10 @@ import process from 'node:process'
 import picomatch from 'picomatch'
 import { escapePath, glob } from 'tinyglobby'
 import { FILE_EXTENSIONS } from './constants'
+import { extractRouteBlocks } from './route-block'
 import {
   extsToGlob,
-  getRouteSfcBlock,
   parseCustomBlock,
-  parseSFC,
   slash,
 } from './utils'
 
@@ -312,10 +311,9 @@ async function readScanFile(
       return { file, routePath, blocks: [] }
     }
 
-    const sfc = parseSFC(code, { filename: file })
-    const blocks = getRouteSfcBlock(sfc)?.map(
+    const blocks = extractRouteBlocks(code).map(
       block => parseCustomBlock(block, file)!,
-    ) ?? []
+    )
     return { file, routePath, blocks }
   }
   catch (error) {
